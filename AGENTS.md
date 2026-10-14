@@ -3,7 +3,7 @@
 ## Stack and commands
 
 - React 19, strict TypeScript, Vite 8, Tailwind CSS v4, pnpm 10, Node.js 22.12+.
-- `pnpm install` installs dependencies; `pnpm dev` starts the server (default port 8443; `PORT` overrides it).
+- `pnpm install` installs dependencies; `pnpm dev` starts the server on localhost (default port 8443; `PORT` overrides it).
 - `pnpm exec tsc --noEmit`, `pnpm build`, and `pnpm format` verify and format changes.
 - The dev server is not assumed to be running.
 

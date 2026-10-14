@@ -37,8 +37,8 @@ importers:
         specifier: ^4.1.18
         version: 4.3.3
       typescript:
-        specifier: ~6.0.2
-        version: 6.0.3
+        specifier: ~5.7.3
+        version: 5.7.3
       vite:
         specifier: ^8.3.0
         version: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)
@@ -646,8 +646,8 @@ packages:
     resolution: {integrity: sha512-Pugqs6M0m7Lv1I7FtxN4aoyToKg1C4tu+/381vH35y8oENM/Ai7f7C4StcoK4/+BSw9ebcS8jRiVrORFKCALLw==}
     engines: {node: ^20.0.0 || >=22.0.0}
 
-  typescript@6.0.3:
-    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+  typescript@5.7.3:
+    resolution: {integrity: sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -1110,7 +1110,7 @@ snapshots:
 
   tinypool@2.1.0: {}
 
-  typescript@6.0.3: {}
+  typescript@5.7.3: {}
 
   undici-types@7.24.6: {}
 

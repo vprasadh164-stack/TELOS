@@ -1,25 +1,51 @@
+import AppShell from "./layout/AppShell";
+import { useNavigation } from "./navigation";
+import PortalLayout from "./portal/PortalLayout";
+import PortalPage from "./portal/PortalPage";
+import Dashboard from "./pages/Dashboard";
+import DetailPage from "./pages/DetailPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import ReferencePage from "./pages/ReferencePage";
+import WorkspacePage from "./pages/WorkspacePage";
+import { getRoute } from "./routes";
+
 function App() {
+  const { pathname, navigate } = useNavigation();
+  const route = getRoute(pathname);
+
+  if (route.kind === "portal") {
+    return (
+      <PortalLayout>
+        <PortalPage projectId={route.projectId} />
+      </PortalLayout>
+    );
+  }
+
+  let page;
+  switch (route.kind) {
+    case "dashboard":
+      page = <Dashboard navigate={navigate} />;
+      break;
+    case "detail":
+      page = (
+        <DetailPage entity={route.entity} id={route.id} navigate={navigate} title={route.title} />
+      );
+      break;
+    case "reference":
+      page = <ReferencePage />;
+      break;
+    case "workspace":
+      page = <WorkspacePage description={route.description} title={route.title} />;
+      break;
+    case "not-found":
+      page = <NotFoundPage navigate={navigate} />;
+      break;
+  }
+
   return (
-    <main className="setup-page">
-      <a className="brand" href="/" aria-label="TELOS home">
-        TELOS<span aria-hidden="true">.</span>
-      </a>
-
-      <section className="setup-card" aria-labelledby="welcome-heading">
-        <p className="eyebrow">CLIENT JOURNEY WORKSPACE</p>
-        <h1 id="welcome-heading">A clearer path from first hello to final handoff.</h1>
-        <p className="setup-copy">
-          The project foundation is ready. We can now build the TELOS dashboard and client journey
-          around your prototype brief.
-        </p>
-        <div className="setup-status">
-          <span className="status-dot" aria-hidden="true" />
-          Local development is ready
-        </div>
-      </section>
-
-      <p className="setup-footer">Built for the people behind great work.</p>
-    </main>
+    <AppShell navigate={navigate} pathname={pathname}>
+      {page}
+    </AppShell>
   );
 }
 

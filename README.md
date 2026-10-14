@@ -24,10 +24,18 @@ port.
 
 ## Project structure
 
-- `src/App.tsx` is the current app entry component.
-- `src/index.css` contains global styles and the Tailwind CSS import.
-- `src/main.tsx` mounts the app.
+- `src/main.tsx` mounts the React app.
+- `src/App.tsx`, `src/routes.ts`, and `src/navigation.ts` select and navigate
+  between client-side routes using the browser History API.
+- `src/components/ui/` contains shared interface primitives.
+- `src/layout/` contains the workspace sidebar, top bar, and app shell.
+- `src/pages/` contains the dashboard and workspace page placeholders.
+- `src/portal/` contains the separate client portal layout and starter page.
+- `src/index.css` imports Tailwind CSS and defines design tokens in `@theme`.
 - `vite.config.ts` configures React, Tailwind CSS v4, and the local server.
 
-The app is at its initial setup stage. Product screens and a fuller project
-guide will be added in later steps.
+The current screens use demo copy and do not persist data. The original Figma
+artwork is not copied into this repository; `/reference` explains this and the
+unfinished workspace pages are intentionally simple placeholders. Data types,
+storage services, and backend setup will be documented as those phases are
+approved.

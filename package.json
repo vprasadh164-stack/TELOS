@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite --host localhost --port 8443",
     "build": "tsc -b && vite build",
+    "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "typecheck": "tsc -b",
     "format": "oxfmt --write ."
   },
@@ -15,15 +18,20 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.0",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
     "oxfmt": "^0.40.0",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.7.3",
-    "vite": "^8.3.0"
+    "typescript-eslint": "8.71.2",
+    "vite": "^8.3.0",
+    "vitest": "5.0.4"
   },
   "packageManager": "pnpm@10.34.7"
 }

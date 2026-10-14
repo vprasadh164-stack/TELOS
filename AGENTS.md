@@ -19,3 +19,18 @@
 - Keep routing dependency-free unless approved otherwise. Ask before adding dependencies or test/lint tools. Complete work in small steps and wait for approval at phase boundaries.
 - Run type-check, production build, formatting, and a browser visual check for each implementation step.
 - Keep baseline screenshots in the ignored `baseline-screenshots/` folder. Do not commit secrets or local environment files.
+
+## Domain vocabulary
+
+- Leads move through `new → contacted → qualified → proposal → won`; `lost` is terminal and requires a reason. `won` records the converted client; project creation is separate.
+- A client can have multiple projects. Project status is `planning`, `in_progress`, `on_hold`, `completed`, or `cancelled`; task and milestone work status is separate.
+- Follow-ups attach to exactly one lead or client. `overdue` is computed from an open follow-up's due time, not stored as a status.
+- Activities and project files require `internal` or `portal` visibility. Portal access is scoped to a client/project pair.
+- Core types are in `src/domain/types.ts`. Backend persistence, transition rules, portal authentication, and visibility defaults remain future work.
+
+## Open product decisions
+
+- Whether leads may move backward or reopen after being lost, and the allowed lost reasons.
+- Whether an open follow-up moves from a lead to its client on conversion.
+- Which activity types can be shared to the portal and the default visibility for new events/files.
+- Workspace currency/timezone defaults and whether portal access can cover multiple projects.

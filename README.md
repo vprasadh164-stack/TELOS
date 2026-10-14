@@ -40,6 +40,8 @@ pnpm exec playwright install chromium
 - `src/layout/` contains the workspace sidebar, top bar, and app shell.
 - `src/pages/` contains the dashboard and workspace page placeholders.
 - `src/portal/` contains the separate client portal layout and starter page.
+- `src/domain/types.ts` defines the approved workspace, lead, client, project,
+  activity, follow-up, message, file, and portal-access types.
 - `tests/unit/` contains route and other domain unit tests.
 - `tests/e2e/` contains browser smoke tests.
 - `src/index.css` imports Tailwind CSS and defines design tokens in `@theme`.
@@ -50,3 +52,7 @@ artwork is not copied into this repository; `/reference` explains this and the
 unfinished workspace pages are intentionally simple placeholders. Data types,
 storage services, and backend setup will be documented as those phases are
 approved.
+
+The approved sales vocabulary is `new → contacted → qualified → proposal → won`
+with `lost` as a terminal lead outcome. Project lifecycle and task/milestone
+statuses are separate; see `AGENTS.md` for open product decisions.

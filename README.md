@@ -122,8 +122,9 @@ statuses are separate; see `AGENTS.md` for open product decisions.
 
 GitHub Pages is free for public repositories. The `Deploy GitHub Pages`
 workflow builds the site from `main` and publishes the `dist` directory with
-`VITE_DEMO_MODE=true`. The `public/CNAME` file configures `telos.codes`, and
-GitHub Pages serves this client-side app's routes.
+`VITE_DEMO_MODE=true`. It also copies the app entry point to `404.html` so
+direct visits and refreshes on client-side routes work. The `public/CNAME` file
+configures `telos.codes`.
 
 1. Make `vprasadh164-stack/TELOS` public, then open its **Settings > Pages**.
    Set the build and deployment source to **GitHub Actions**.

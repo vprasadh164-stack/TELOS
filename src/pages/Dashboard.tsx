@@ -5,32 +5,49 @@ import Card from "../components/ui/Card";
 import Icon from "../components/ui/Icon";
 import InternalLink from "../components/ui/InternalLink";
 import ProgressBar from "../components/ui/ProgressBar";
-import StatusPill from "../components/ui/StatusPill";
 import type { Navigate } from "../navigation";
-
-const followUps = [
-  {
-    action: "Confirm the project brief",
-    client: "Sofia Martin",
-    due: "Due today",
-  },
-  {
-    action: "Share the updated estimate",
-    client: "Sarah Adams",
-    due: "Tomorrow",
-  },
-];
+import { calculateDashboardMetrics } from "../domain/dashboard-metrics";
+import type { WorkspaceData } from "../data/workspace-data";
 
 function getGreeting() {
   const hour = new Date().getHours();
-
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
 
-function Dashboard({ navigate }: { navigate: Navigate }) {
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatDueDate(value: string) {
+  const dueDate = new Date(value);
+  const today = new Date();
+  const dueDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const tomorrowStart = todayStart + 24 * 60 * 60 * 1000;
+  if (dueDay < todayStart) return "Overdue";
+  if (dueDay === todayStart) return "Due today";
+  if (dueDay === tomorrowStart) return "Tomorrow";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(dueDate);
+}
+
+function Dashboard({ data, navigate }: { data: WorkspaceData; navigate: Navigate }) {
   const greeting = getGreeting();
+  const metrics = calculateDashboardMetrics(data);
+  const firstProject = data.projects.find((item) =>
+    ["planning", "in_progress", "on_hold"].includes(item.project.status),
+  );
+  const leadNameById = new Map(data.leads.map((lead) => [lead.id, lead.name]));
+  const newestLeads = [...data.leads]
+    .filter((lead) => lead.stage !== "won" && lead.stage !== "lost")
+    .sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+  const followUps = metrics.openFollowUps.slice(0, 4);
+  const weeklyTrend = metrics.weeklyPipelineChange;
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -40,10 +57,10 @@ function Dashboard({ navigate }: { navigate: Navigate }) {
             <p className="text-caption font-semibold uppercase tracking-[0.09em] text-muted">
               Your workspace
             </p>
-            <Badge tone="primary">Demo data</Badge>
+            <Badge tone="primary">Local demo</Badge>
           </div>
           <h1 className="text-page-title font-semibold tracking-[-0.04em] text-ink sm:text-[28px]">
-            {greeting}, Alex
+            {greeting}, {data.ownerName.split(" ")[0]}
           </h1>
           <p className="mt-2 text-label text-muted">
             Here&apos;s a snapshot of the client journey.
@@ -56,14 +73,29 @@ function Dashboard({ navigate }: { navigate: Navigate }) {
       </div>
 
       <section aria-label="Workspace overview" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard detail="Sofia Martin and one more" icon="users" label="New leads" value="02" />
-        <MetricCard detail="1 due today" icon="clock" label="Follow-ups" value="02" />
-        <MetricCard detail="ABC Restaurant" icon="briefcase" label="Active projects" value="01" />
         <MetricCard
-          detail="Sample workspace limit"
+          detail={`${metrics.newLeadsLastMonth} last month`}
+          icon="users"
+          label="New leads this month"
+          value={String(metrics.newLeadsThisMonth).padStart(2, "0")}
+        />
+        <MetricCard
+          detail={`${metrics.followUpsDueToday} due today`}
+          icon="clock"
+          label="Follow-ups due"
+          value={String(metrics.followUpsDue).padStart(2, "0")}
+        />
+        <MetricCard
+          detail={`${metrics.onTrackProjects} on track`}
+          icon="briefcase"
+          label="Active projects"
+          value={String(metrics.activeProjects).padStart(2, "0")}
+        />
+        <MetricCard
+          detail={`${weeklyTrend >= 0 ? "+" : "−"}${formatCurrency(Math.abs(weeklyTrend))} this week`}
           icon="chart"
-          label="Contacts this month"
-          value="742 / 1,000"
+          label="Pipeline value"
+          value={formatCurrency(metrics.pipelineValue)}
         />
       </section>
 
@@ -74,25 +106,29 @@ function Dashboard({ navigate }: { navigate: Navigate }) {
               <h2 className="text-title font-semibold text-ink">Customer journey</h2>
               <p className="mt-1 text-label text-muted">Keep each relationship moving forward.</p>
             </div>
-            <Badge>2 leads in progress</Badge>
+            <Badge>{newestLeads.length} leads in progress</Badge>
           </div>
           <div className="mt-7 grid grid-cols-4">
             {[
-              { count: "02", label: "Lead" },
-              { count: "02", label: "Follow-up" },
-              { count: "01", label: "Project" },
-              { count: "00", label: "Complete" },
+              { count: newestLeads.length, label: "Lead" },
+              {
+                count: metrics.openFollowUps.length,
+                label: "Follow-up",
+              },
+              { count: metrics.activeProjects, label: "Project" },
+              {
+                count: data.projects.filter((item) => item.project.status === "completed").length,
+                label: "Complete",
+              },
             ].map((step, index) => (
               <div className="relative" key={step.label}>
                 {index < 3 && <div className="absolute left-1/2 right-0 top-3 h-px bg-line" />}
                 <span
                   className={`relative z-10 inline-flex size-6 items-center justify-center rounded-full text-caption font-semibold ${
-                    index === 0 || index === 1
-                      ? "bg-primary text-white"
-                      : "border border-line bg-surface text-muted"
+                    index < 2 ? "bg-primary text-white" : "border border-line bg-surface text-muted"
                   }`}
                 >
-                  {step.count}
+                  {String(step.count).padStart(2, "0")}
                 </span>
                 <p className="mt-3 pr-2 text-caption font-medium text-muted sm:text-label">
                   {step.label}
@@ -106,7 +142,7 @@ function Dashboard({ navigate }: { navigate: Navigate }) {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-title font-semibold text-ink">Follow-ups</h2>
-              <p className="mt-1 text-label text-muted">A couple to keep moving.</p>
+              <p className="mt-1 text-label text-muted">The next steps on your list.</p>
             </div>
             <InternalLink
               className="text-label font-semibold text-primary no-underline hover:underline"
@@ -116,61 +152,103 @@ function Dashboard({ navigate }: { navigate: Navigate }) {
               View all
             </InternalLink>
           </div>
-          <ul className="mt-4 divide-y divide-line">
-            {followUps.map((followUp) => (
-              <li
-                className="flex items-center gap-3 py-3 first:pt-1 last:pb-0"
-                key={followUp.client}
-              >
-                <Avatar name={followUp.client} size="small" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-label font-semibold text-ink">{followUp.client}</p>
-                  <p className="mt-0.5 truncate text-caption text-muted">{followUp.action}</p>
-                </div>
-                <StatusPill status={followUp.due === "Tomorrow" ? "Tomorrow" : "Due today"} />
-              </li>
-            ))}
-          </ul>
+          {followUps.length === 0 ? (
+            <p className="mt-5 text-label text-muted">
+              No open follow-ups. You&apos;re all caught up.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-line">
+              {followUps.map((followUp) => {
+                const due = formatDueDate(followUp.dueAt);
+                const leadName = followUp.leadId
+                  ? (leadNameById.get(followUp.leadId) ?? "Lead")
+                  : "Client";
+                return (
+                  <li
+                    className="flex items-center gap-3 py-3 first:pt-1 last:pb-0"
+                    key={followUp.id}
+                  >
+                    <Avatar name={leadName} size="small" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-label font-semibold text-ink">{leadName}</p>
+                      <p className="mt-0.5 truncate text-caption text-muted">{followUp.note}</p>
+                    </div>
+                    <Badge
+                      tone={
+                        due === "Overdue" ? "warm" : due === "Due today" ? "success" : "neutral"
+                      }
+                    >
+                      {due}
+                    </Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Card>
       </div>
 
-      <Card className="p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex size-10 items-center justify-center rounded-control bg-primary-soft text-primary">
-              <Icon className="size-5" name="briefcase" />
-            </span>
+      {firstProject ? (
+        <Card className="p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex size-10 items-center justify-center rounded-control bg-primary-soft text-primary">
+                <Icon className="size-5" name="briefcase" />
+              </span>
+              <div>
+                <p className="text-caption font-medium text-muted">Active project</p>
+                <h2 className="mt-0.5 text-title font-semibold text-ink">
+                  {firstProject.project.name}
+                </h2>
+              </div>
+            </div>
+            <Badge tone="success">
+              {firstProject.project.deadline &&
+              firstProject.project.deadline < new Date().toISOString().slice(0, 10)
+                ? "Needs attention"
+                : "On track"}
+            </Badge>
+          </div>
+          <div className="mt-5 grid gap-5 md:grid-cols-[1fr_1.5fr] md:items-center">
             <div>
-              <p className="text-caption font-medium text-muted">Active project</p>
-              <h2 className="mt-0.5 text-title font-semibold text-ink">ABC Restaurant</h2>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-label font-medium text-ink">Project progress</span>
+                <span className="text-label font-semibold text-ink">{firstProject.progress}%</span>
+              </div>
+              <ProgressBar
+                label={`${firstProject.project.name} project progress`}
+                value={firstProject.progress}
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-control bg-canvas px-4 py-3">
+              <div>
+                <p className="text-caption text-muted">Next milestone</p>
+                <p className="mt-1 text-label font-semibold text-ink">
+                  {firstProject.nextMilestone}
+                </p>
+              </div>
+              <InternalLink
+                className="inline-flex items-center gap-1 text-label font-semibold text-primary no-underline hover:underline"
+                href={`/projects/${firstProject.project.id}`}
+                navigate={navigate}
+              >
+                Project details
+                <Icon className="size-4" name="arrow-right" />
+              </InternalLink>
             </div>
           </div>
-          <StatusPill status="On track" />
-        </div>
-        <div className="mt-5 grid gap-5 md:grid-cols-[1fr_1.5fr] md:items-center">
-          <div>
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-label font-medium text-ink">Project progress</span>
-              <span className="text-label font-semibold text-ink">60%</span>
-            </div>
-            <ProgressBar label="ABC Restaurant project progress" value={60} />
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-control bg-canvas px-4 py-3">
-            <div>
-              <p className="text-caption text-muted">Next milestone</p>
-              <p className="mt-1 text-label font-semibold text-ink">Project review</p>
-            </div>
-            <InternalLink
-              className="inline-flex items-center gap-1 text-label font-semibold text-primary no-underline hover:underline"
-              href="/projects/demo-project"
-              navigate={navigate}
-            >
-              Project details
-              <Icon className="size-4" name="arrow-right" />
-            </InternalLink>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      ) : (
+        <Card className="p-6">
+          <p className="text-label text-muted">
+            No active projects yet. Convert a lead when you&apos;re ready.
+          </p>
+        </Card>
+      )}
+
+      <p className="text-caption text-muted">
+        Pipeline and follow-up totals update from the leads you manage in this local demo.
+      </p>
     </div>
   );
 }

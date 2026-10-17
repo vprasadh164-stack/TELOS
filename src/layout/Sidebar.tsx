@@ -16,11 +16,16 @@ const navItems: { href: string; icon: IconName; label: string }[] = [
 ];
 
 type SidebarProps = {
+  contactsLimit: number;
+  contactsUsed: number;
   navigate: Navigate;
+  ownerName: string;
   pathname: string;
 };
 
-function Sidebar({ navigate, pathname }: SidebarProps) {
+function Sidebar({ contactsLimit, contactsUsed, navigate, ownerName, pathname }: SidebarProps) {
+  const contactsProgress = Math.min((contactsUsed / contactsLimit) * 100, 100);
+
   return (
     <aside className="flex w-full shrink-0 flex-col border-b border-line bg-surface px-4 py-4 md:min-h-screen md:w-60 md:border-r md:border-b-0 md:px-4 md:py-6">
       <div className="flex items-center justify-between md:px-2">
@@ -65,9 +70,11 @@ function Sidebar({ navigate, pathname }: SidebarProps) {
       <div className="mt-5 hidden rounded-panel border border-line bg-canvas p-3 md:mt-auto md:block">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-caption font-semibold text-ink">Monthly contacts</span>
-          <span className="text-caption text-muted">742 / 1,000</span>
+          <span className="text-caption text-muted">
+            {contactsUsed.toLocaleString()} / {contactsLimit.toLocaleString()}
+          </span>
         </div>
-        <ProgressBar label="Monthly contacts used" value={74.2} />
+        <ProgressBar label="Monthly contacts used" value={contactsProgress} />
         <button
           className="mt-3 text-caption font-semibold text-primary hover:underline"
           disabled
@@ -79,9 +86,9 @@ function Sidebar({ navigate, pathname }: SidebarProps) {
       </div>
 
       <div className="mt-4 hidden items-center gap-3 border-t border-line px-2 pt-4 md:flex">
-        <Avatar name="Alex Morgan" size="small" />
+        <Avatar name={ownerName} size="small" />
         <div className="min-w-0">
-          <p className="truncate text-label font-semibold text-ink">Alex Morgan</p>
+          <p className="truncate text-label font-semibold text-ink">{ownerName}</p>
           <p className="text-caption text-muted">Workspace owner</p>
         </div>
       </div>

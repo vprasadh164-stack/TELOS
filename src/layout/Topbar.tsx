@@ -1,7 +1,7 @@
 import Avatar from "../components/ui/Avatar";
 import Icon from "../components/ui/Icon";
 
-function Topbar() {
+function Topbar({ ownerName }: { ownerName: string }) {
   const now = new Date();
   const today = new Intl.DateTimeFormat("en-US", {
     day: "numeric",
@@ -43,8 +43,8 @@ function Topbar() {
           <Icon className="size-[18px]" name="bell" />
         </button>
         <div className="flex items-center gap-2">
-          <Avatar name="Alex Morgan" size="small" />
-          <span className="hidden text-label font-medium text-ink lg:inline">Alex Morgan</span>
+          <Avatar name={ownerName} size="small" />
+          <span className="hidden text-label font-medium text-ink lg:inline">{ownerName}</span>
         </div>
       </div>
     </header>

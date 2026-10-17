@@ -11,6 +11,7 @@
 
 - React mount: `src/main.tsx`; route selection: `src/App.tsx` and `src/routes.ts`; browser-history navigation: `src/navigation.ts`.
 - Shared UI primitives live in `src/components/ui/`; the workspace shell is in `src/layout/`; workspace pages are in `src/pages/`; client portal layout and page are in `src/portal/`.
+- Typed workspace data contracts and adapters live in `src/data/`; domain calculations live in `src/domain/`.
 - Design tokens live in the Tailwind v4 `@theme` block in `src/index.css`.
 - Unit tests live in `tests/unit/`; browser flows live in `tests/e2e/`.
 - Keep TypeScript strict, use semantic HTML, and retain visible keyboard focus.
@@ -26,7 +27,8 @@
 - A client can have multiple projects. Project status is `planning`, `in_progress`, `on_hold`, `completed`, or `cancelled`; task and milestone work status is separate.
 - Follow-ups attach to exactly one lead or client. `overdue` is computed from an open follow-up's due time, not stored as a status.
 - Activities and project files require `internal` or `portal` visibility. Portal access is scoped to a client/project pair.
-- Core types are in `src/domain/types.ts`. Backend persistence, transition rules, portal authentication, and visibility defaults remain future work.
+- Core types are in `src/domain/types.ts`. Leads, follow-ups, and activity currently use a browser-local demo adapter; the Supabase SDK and public-key client configuration are present, but no database schema, RLS policies, authentication, or hosted project is connected yet.
+- Keep UI components behind the typed workspace service. Do not expose a Supabase service-role key in frontend code; configure only public project values with `.env.local`.
 
 ## Open product decisions
 

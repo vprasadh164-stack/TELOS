@@ -118,39 +118,42 @@ The approved sales vocabulary is `new → contacted → qualified → proposal �
 with `lost` as a terminal lead outcome. Project lifecycle and task/milestone
 statuses are separate; see `AGENTS.md` for open product decisions.
 
-## Deploying to Vercel
+## Deploying to Cloudflare Pages
 
-The production build is configured for Vercel's static hosting. The rewrite in
-`vercel.json` keeps client-side routes such as `/business/login` working on
-direct visits and page refreshes.
+Cloudflare Pages has a free tier and can build this private GitHub repository.
+The project is a static Vite app: use `pnpm build` as the build command and
+`dist` as the build output directory. Pages automatically serves the SPA entry
+point for client-side routes such as `/business/login`.
 
-1. Import `vprasadh164-stack/TELOS` into a Vercel project and deploy the `main`
-   branch. Use `pnpm build` as the build command and `dist` as the output
-   directory; Vercel can install dependencies from `pnpm-lock.yaml`.
-2. Add `telos.codes` and, if desired, `www.telos.codes` in the Vercel project.
-   In Name.com DNS settings, add the records Vercel shows for those domains.
-   Keep DNS changes limited to the host records Vercel specifies.
-3. In Vercel's Production environment variables, set `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY` from your Supabase project. These are public client
-   configuration values; never set a service-role key as a `VITE_` variable.
-4. Apply the Supabase migration above. Set the Supabase Auth site URL to
-   `https://telos.codes` and add `https://telos.codes/auth/callback` (and the
-   `www` callback too if you use that hostname) to the allowed redirect URLs.
-   Configure Google's OAuth provider in Supabase using the callback URL shown
-   by Supabase, not a key or secret in this repository.
-5. Redeploy after setting environment variables. Test both the home page and a
-   direct visit to `/business/login`.
+1. Create a Cloudflare account and connect GitHub under **Workers & Pages** >
+   **Create application** > **Pages** > **Import an existing Git repository**.
+   Authorize access to the private `vprasadh164-stack/TELOS` repository.
+2. Choose `main` as the production branch, `pnpm build` as the build command,
+   and `dist` as the build output directory. Set the `NODE_VERSION` build
+   environment variable to `22.13.0`.
+3. For the temporary public demo, set `VITE_DEMO_MODE` to `true` in the
+   production environment variables, then deploy. The generated `*.pages.dev`
+   address can be used to inspect the site before connecting the custom domain.
+4. Add `telos.codes` under the Pages project's **Custom domains**. Cloudflare
+   requires the apex domain's DNS zone to use Cloudflare nameservers. At
+   Name.com, change the domain's nameservers to the pair Cloudflare assigns.
+   Review/import any existing DNS records first so other domain services, such
+   as email, are not disrupted. Add `www.telos.codes` separately if desired.
+5. After DNS and TLS become active, test `https://telos.codes/` and a direct
+   visit to `https://telos.codes/leads`.
 
 ### Temporary demo preview without Supabase
 
-To preview the workspace on the live domain before Supabase is ready, set
-`VITE_DEMO_MODE=true` in the Vercel project's Production environment variables
-and deploy. This opts that deployment into an **unauthenticated public demo**:
-anyone who visits the domain can view and edit sample data in their own browser.
-The app displays a demo notice, and edits stay in that browser's local storage.
-Do not enter real customer, business, or confidential information.
+Setting `VITE_DEMO_MODE=true` opts the deployment into an **unauthenticated
+public demo**: anyone who visits the site can view and edit sample data in their
+own browser. The app displays a demo notice, and edits stay in that browser's
+local storage. Do not enter real customer, business, or confidential
+information.
 
-Remove `VITE_DEMO_MODE` or set it to `false` and redeploy when you are ready for
-the production sign-in gate. Without Supabase or this explicit demo setting,
-production intentionally fails closed. The temporary preview does not enable
-Google sign-in, business verification, or real customer portal access.
+When Supabase is ready, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`,
+apply the migration above, and configure Supabase Auth's site URL and Google
+OAuth redirects for `https://telos.codes/auth/callback`. Remove
+`VITE_DEMO_MODE` or set it to `false` and redeploy to restore the production
+sign-in gate. Without Supabase or this explicit demo setting, production
+intentionally fails closed. The temporary preview does not enable Google
+sign-in, business verification, or real customer portal access.

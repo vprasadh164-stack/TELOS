@@ -141,8 +141,16 @@ direct visits and page refreshes.
 5. Redeploy after setting environment variables. Test both the home page and a
    direct visit to `/business/login`.
 
-Production intentionally fails closed until Supabase is configured. Do not
-disable that protection just to make a deployment appear live: without the
-project, Google OAuth settings, and migration, sign-in and business/customer
-access checks cannot work securely. Also note that leads and projects still
-use browser-local demo storage and are not ready for real customer data.
+### Temporary demo preview without Supabase
+
+To preview the workspace on the live domain before Supabase is ready, set
+`VITE_DEMO_MODE=true` in the Vercel project's Production environment variables
+and deploy. This opts that deployment into an **unauthenticated public demo**:
+anyone who visits the domain can view and edit sample data in their own browser.
+The app displays a demo notice, and edits stay in that browser's local storage.
+Do not enter real customer, business, or confidential information.
+
+Remove `VITE_DEMO_MODE` or set it to `false` and redeploy when you are ready for
+the production sign-in gate. Without Supabase or this explicit demo setting,
+production intentionally fails closed. The temporary preview does not enable
+Google sign-in, business verification, or real customer portal access.

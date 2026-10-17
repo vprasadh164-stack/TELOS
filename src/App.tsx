@@ -30,6 +30,7 @@ function App() {
   const { pathname, navigate } = useNavigation();
   const route = getRoute(pathname);
   const auth = useAuth();
+  const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
 
   if (route.kind === "login") {
     return (
@@ -103,7 +104,7 @@ function App() {
     return <ConfigurationError message={auth.error} />;
   }
 
-  if (!auth.configured && !import.meta.env.DEV && route.kind !== "reference") {
+  if (!auth.configured && !import.meta.env.DEV && !demoMode && route.kind !== "reference") {
     return (
       <ConfigurationError message="Supabase authentication must be configured before the TELOS app can be used." />
     );
@@ -183,6 +184,7 @@ function App() {
       route={route}
       scope="local-preview"
       authClient={null}
+      previewMode={demoMode}
     />
   );
 }
@@ -193,12 +195,14 @@ function WorkspaceApp({
   route,
   scope,
   authClient,
+  previewMode = false,
 }: {
   navigate: (to: string) => void;
   pathname: string;
   route: ReturnType<typeof getRoute>;
   scope: string;
   authClient: AppSupabaseClient | null;
+  previewMode?: boolean;
 }) {
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const { data, error, updateData } = useWorkspaceData(true, scope);
@@ -348,6 +352,7 @@ function WorkspaceApp({
       onSignOut={authClient ? () => void handleSignOut() : undefined}
       ownerName={data.ownerName}
       pathname={pathname}
+      previewMode={previewMode}
     >
       {error && (
         <p

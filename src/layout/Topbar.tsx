@@ -1,7 +1,7 @@
 import Avatar from "../components/ui/Avatar";
 import Icon from "../components/ui/Icon";
 
-function Topbar({ ownerName }: { ownerName: string }) {
+function Topbar({ onSignOut, ownerName }: { onSignOut?: () => void; ownerName: string }) {
   const now = new Date();
   const today = new Intl.DateTimeFormat("en-US", {
     day: "numeric",
@@ -46,6 +46,15 @@ function Topbar({ ownerName }: { ownerName: string }) {
           <Avatar name={ownerName} size="small" />
           <span className="hidden text-label font-medium text-ink lg:inline">{ownerName}</span>
         </div>
+        {onSignOut && (
+          <button
+            className="min-h-9 rounded-control px-2 text-caption font-medium text-muted hover:bg-canvas hover:text-ink"
+            onClick={onSignOut}
+            type="button"
+          >
+            Sign out
+          </button>
+        )}
       </div>
     </header>
   );

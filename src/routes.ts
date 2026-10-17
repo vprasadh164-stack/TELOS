@@ -1,6 +1,14 @@
 export type AppRoute =
   | { kind: "dashboard" }
   | { kind: "detail"; entity: "lead" | "project"; id: string; title: string }
+  | { kind: "auth-callback" }
+  | { kind: "business-login" }
+  | { kind: "business-preview" }
+  | { kind: "business-requests" }
+  | { kind: "business-verify" }
+  | { kind: "customer-access" }
+  | { kind: "customer-login" }
+  | { kind: "login" }
   | { kind: "not-found" }
   | { kind: "portal"; projectId: string }
   | { kind: "reference" }
@@ -39,6 +47,14 @@ const workspacePages: Record<string, { description: string; title: string }> = {
 
 export function getRoute(pathname: string): AppRoute {
   if (pathname === "/") return { kind: "dashboard" };
+  if (pathname === "/login") return { kind: "login" };
+  if (pathname === "/business/login") return { kind: "business-login" };
+  if (pathname === "/business/preview") return { kind: "business-preview" };
+  if (pathname === "/business/verify") return { kind: "business-verify" };
+  if (pathname === "/business/requests") return { kind: "business-requests" };
+  if (pathname === "/customer/login") return { kind: "customer-login" };
+  if (pathname === "/customer/access") return { kind: "customer-access" };
+  if (pathname === "/auth/callback") return { kind: "auth-callback" };
   if (pathname === "/reference") return { kind: "reference" };
 
   const leadMatch = pathname.match(/^\/leads\/([^/]+)$/);

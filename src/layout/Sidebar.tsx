@@ -67,6 +67,31 @@ function Sidebar({ contactsLimit, contactsUsed, navigate, ownerName, pathname }:
         })}
       </nav>
 
+      <div className="mt-3 border-t border-line pt-3">
+        <InternalLink
+          aria-current={pathname === "/login" ? "page" : undefined}
+          className="flex min-h-10 items-center gap-3 rounded-control px-3 text-label font-medium text-muted no-underline hover:bg-canvas hover:text-ink"
+          href="/login"
+          navigate={navigate}
+        >
+          <Icon className="size-[18px]" name="settings" />
+          <span>Business &amp; customer sign in</span>
+        </InternalLink>
+        <InternalLink
+          aria-current={pathname === "/business/requests" ? "page" : undefined}
+          className={`mt-1 flex min-h-10 items-center gap-3 rounded-control px-3 text-label font-medium no-underline transition-colors ${
+            pathname === "/business/requests"
+              ? "bg-primary-soft text-primary"
+              : "text-muted hover:bg-canvas hover:text-ink"
+          }`}
+          href="/business/requests"
+          navigate={navigate}
+        >
+          <Icon className="size-[18px]" name="users" />
+          <span>Customer access</span>
+        </InternalLink>
+      </div>
+
       <div className="mt-5 hidden rounded-panel border border-line bg-canvas p-3 md:mt-auto md:block">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-caption font-semibold text-ink">Monthly contacts</span>

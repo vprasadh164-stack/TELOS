@@ -42,3 +42,18 @@ test("a new lead and follow-up persist in the local demo workspace", async ({ pa
   await expect(page.getByRole("heading", { name: "Taylor Demo" })).toBeVisible();
   await expect(page.getByText("Sent", { exact: true })).toBeVisible();
 });
+
+test("business and customer sign-in have separate entry pages", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "Welcome to TELOS" })).toBeVisible();
+
+  await page.getByRole("link", { name: /Business or freelancer/ }).click();
+  await expect(page).toHaveURL(/\/business\/login$/);
+  await expect(page.getByRole("heading", { name: "Sign in to your workspace" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeDisabled();
+  await expect(page.getByText(/Google sign-in is not connected yet/)).toBeVisible();
+
+  await page.goto("/customer/login");
+  await expect(page.getByRole("heading", { name: "Sign in to your client portal" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeDisabled();
+});

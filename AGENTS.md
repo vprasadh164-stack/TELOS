@@ -27,8 +27,10 @@
 - A client can have multiple projects. Project status is `planning`, `in_progress`, `on_hold`, `completed`, or `cancelled`; task and milestone work status is separate.
 - Follow-ups attach to exactly one lead or client. `overdue` is computed from an open follow-up's due time, not stored as a status.
 - Activities and project files require `internal` or `portal` visibility. Portal access is scoped to a client/project pair.
-- Core types are in `src/domain/types.ts`. Leads, follow-ups, and activity currently use a browser-local demo adapter; the Supabase SDK and public-key client configuration are present, but no database schema, RLS policies, authentication, or hosted project is connected yet.
+- Core types are in `src/domain/types.ts`. Leads, follow-ups, and activity currently use a browser-local demo adapter. Google OAuth client code and a first RLS-protected auth migration are present, but no Supabase project is configured and lead/project data is not hosted.
 - Keep UI components behind the typed workspace service. Do not expose a Supabase service-role key in frontend code; configure only public project values with `.env.local`.
+- Auth routes are `/business/login`, `/customer/login`, `/business/verify`, `/business/preview`, `/business/requests`, and `/customer/access`. One Google identity may use both business and customer spaces; business verification is manually approved and customer access is request-based.
+- `supabase/migrations/` contains RLS-protected application and access-request tables. Future tenant data tables and portal permissions still need their own RLS policies; local demo data is not production persistence.
 
 ## Open product decisions
 

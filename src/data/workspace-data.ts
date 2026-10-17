@@ -18,11 +18,11 @@ export interface WorkspaceData {
 }
 
 export interface WorkspaceService {
-  load(): WorkspaceData;
-  save(data: WorkspaceData): void;
+  load(scope?: string): WorkspaceData;
+  save(data: WorkspaceData, scope?: string): void;
 }
 
-const storageKey = "telos.demo-workspace.v1";
+const storageKey = (scope: string) => `telos.demo-workspace.v1.${encodeURIComponent(scope)}`;
 const workspaceId = "demo-workspace";
 const ownerId = "demo-owner";
 
@@ -196,11 +196,12 @@ function isWorkspaceData(value: unknown): value is WorkspaceData {
 }
 
 export const demoWorkspaceService: WorkspaceService = {
-  load() {
-    const storedData = window.localStorage.getItem(storageKey);
+  load(scope = "local-preview") {
+    const key = storageKey(scope);
+    const storedData = window.localStorage.getItem(key);
     if (storedData === null) {
       const seedData = createSeedData();
-      this.save(seedData);
+      this.save(seedData, scope);
       return seedData;
     }
 
@@ -212,8 +213,8 @@ export const demoWorkspaceService: WorkspaceService = {
     }
     return parsedData;
   },
-  save(data) {
-    window.localStorage.setItem(storageKey, JSON.stringify(data));
+  save(data, scope = "local-preview") {
+    window.localStorage.setItem(storageKey(scope), JSON.stringify(data));
   },
 };
 

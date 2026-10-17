@@ -1,13 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types.js";
 
-export function getConfiguredSupabaseClient() {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const publishableKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const url = import.meta.env.VITE_SUPABASE_URL;
+const publishableKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  if (!url && !publishableKey) return null;
-  if (!url || !publishableKey) {
-    throw new Error("Set both VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to configure Supabase.");
-  }
+export const supabaseConfigurationError =
+  (url && !publishableKey) || (!url && publishableKey)
+    ? "Set both VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to configure Supabase."
+    : null;
 
-  return createClient(url, publishableKey);
-}
+export type AppSupabaseClient = ReturnType<typeof createClient<Database>>;
+
+export const supabase: AppSupabaseClient | null =
+  url && publishableKey
+    ? createClient<Database>(url, publishableKey, {
+        auth: {
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          persistSession: true,
+        },
+      })
+    : null;

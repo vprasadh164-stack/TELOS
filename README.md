@@ -118,29 +118,29 @@ The approved sales vocabulary is `new → contacted → qualified → proposal �
 with `lost` as a terminal lead outcome. Project lifecycle and task/milestone
 statuses are separate; see `AGENTS.md` for open product decisions.
 
-## Deploying to Cloudflare Pages
+## Deploying to GitHub Pages
 
-Cloudflare Pages has a free tier and can build this private GitHub repository.
-The project is a static Vite app: use `pnpm build` as the build command and
-`dist` as the build output directory. Pages automatically serves the SPA entry
-point for client-side routes such as `/business/login`.
+GitHub Pages is free for public repositories. The `Deploy GitHub Pages`
+workflow builds the site from `main` and publishes the `dist` directory with
+`VITE_DEMO_MODE=true`. The `public/CNAME` file configures `telos.codes`, and
+GitHub Pages serves this client-side app's routes.
 
-1. Create a Cloudflare account and connect GitHub under **Workers & Pages** >
-   **Create application** > **Pages** > **Import an existing Git repository**.
-   Authorize access to the private `vprasadh164-stack/TELOS` repository.
-2. Choose `main` as the production branch, `pnpm build` as the build command,
-   and `dist` as the build output directory. Set the `NODE_VERSION` build
-   environment variable to `22.13.0`.
-3. For the temporary public demo, set `VITE_DEMO_MODE` to `true` in the
-   production environment variables, then deploy. The generated `*.pages.dev`
-   address can be used to inspect the site before connecting the custom domain.
-4. Add `telos.codes` under the Pages project's **Custom domains**. Cloudflare
-   requires the apex domain's DNS zone to use Cloudflare nameservers. At
-   Name.com, change the domain's nameservers to the pair Cloudflare assigns.
-   Review/import any existing DNS records first so other domain services, such
-   as email, are not disrupted. Add `www.telos.codes` separately if desired.
-5. After DNS and TLS become active, test `https://telos.codes/` and a direct
-   visit to `https://telos.codes/leads`.
+1. Make `vprasadh164-stack/TELOS` public, then open its **Settings > Pages**.
+   Set the build and deployment source to **GitHub Actions**.
+2. In **Settings > Pages**, verify that `telos.codes` is listed as the custom
+   domain after the first workflow deployment. Enforce HTTPS when the option
+   becomes available.
+3. At Name.com, keep the current nameservers and edit DNS records. Point the
+   apex (`@`) to GitHub Pages with these four A records: `185.199.108.153`,
+   `185.199.109.153`, `185.199.110.153`, and `185.199.111.153`. Optionally add
+   the four corresponding AAAA records from GitHub's custom-domain guide. To
+   use `www.telos.codes`, add a CNAME for `www` pointing to
+   `vprasadh164-stack.github.io`. Check for conflicting existing records first.
+4. Wait for DNS and certificate provisioning, then test
+   `https://telos.codes/` and a direct visit to `https://telos.codes/leads`.
+
+Every push to `main` automatically builds and deploys the latest demo. No
+hosting provider account or deployment secret is required.
 
 ### Temporary demo preview without Supabase
 
@@ -150,10 +150,10 @@ own browser. The app displays a demo notice, and edits stay in that browser's
 local storage. Do not enter real customer, business, or confidential
 information.
 
-When Supabase is ready, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`,
-apply the migration above, and configure Supabase Auth's site URL and Google
-OAuth redirects for `https://telos.codes/auth/callback`. Remove
-`VITE_DEMO_MODE` or set it to `false` and redeploy to restore the production
-sign-in gate. Without Supabase or this explicit demo setting, production
-intentionally fails closed. The temporary preview does not enable Google
-sign-in, business verification, or real customer portal access.
+When Supabase is ready, update the Pages build workflow to configure
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, apply the migration above,
+and configure Supabase Auth's site URL and Google OAuth redirects for
+`https://telos.codes/auth/callback`. Remove `VITE_DEMO_MODE` from the workflow
+and redeploy to restore the production sign-in gate. The temporary preview
+does not enable Google sign-in, business verification, or real customer portal
+access.

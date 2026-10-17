@@ -117,3 +117,32 @@ RLS policies before being exposed.
 The approved sales vocabulary is `new → contacted → qualified → proposal → won`
 with `lost` as a terminal lead outcome. Project lifecycle and task/milestone
 statuses are separate; see `AGENTS.md` for open product decisions.
+
+## Deploying to Vercel
+
+The production build is configured for Vercel's static hosting. The rewrite in
+`vercel.json` keeps client-side routes such as `/business/login` working on
+direct visits and page refreshes.
+
+1. Import `vprasadh164-stack/TELOS` into a Vercel project and deploy the `main`
+   branch. Use `pnpm build` as the build command and `dist` as the output
+   directory; Vercel can install dependencies from `pnpm-lock.yaml`.
+2. Add `telos.codes` and, if desired, `www.telos.codes` in the Vercel project.
+   In Name.com DNS settings, add the records Vercel shows for those domains.
+   Keep DNS changes limited to the host records Vercel specifies.
+3. In Vercel's Production environment variables, set `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY` from your Supabase project. These are public client
+   configuration values; never set a service-role key as a `VITE_` variable.
+4. Apply the Supabase migration above. Set the Supabase Auth site URL to
+   `https://telos.codes` and add `https://telos.codes/auth/callback` (and the
+   `www` callback too if you use that hostname) to the allowed redirect URLs.
+   Configure Google's OAuth provider in Supabase using the callback URL shown
+   by Supabase, not a key or secret in this repository.
+5. Redeploy after setting environment variables. Test both the home page and a
+   direct visit to `/business/login`.
+
+Production intentionally fails closed until Supabase is configured. Do not
+disable that protection just to make a deployment appear live: without the
+project, Google OAuth settings, and migration, sign-in and business/customer
+access checks cannot work securely. Also note that leads and projects still
+use browser-local demo storage and are not ready for real customer data.

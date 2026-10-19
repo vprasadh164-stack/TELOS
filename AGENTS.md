@@ -24,6 +24,7 @@
 ## Domain vocabulary
 
 - Leads move through `new → contacted → qualified → proposal → won`; `lost` is terminal and requires a reason. `won` records the converted client; project creation is separate.
+- Converting a lead to a client moves its open follow-ups to that client; completed/sent follow-ups remain on the lead.
 - A client can have multiple projects. Project status is `planning`, `in_progress`, `on_hold`, `completed`, or `cancelled`; task and milestone work status is separate.
 - Follow-ups attach to exactly one lead or client. `overdue` is computed from an open follow-up's due time, not stored as a status.
 - Activities and project files require `internal` or `portal` visibility. Portal access is scoped to a client/project pair.
@@ -35,6 +36,5 @@
 ## Open product decisions
 
 - Whether leads may move backward or reopen after being lost, and the allowed lost reasons.
-- Whether an open follow-up moves from a lead to its client on conversion.
 - Which activity types can be shared to the portal and the default visibility for new events/files.
 - Workspace currency/timezone defaults and whether portal access can cover multiple projects.

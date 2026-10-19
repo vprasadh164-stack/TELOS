@@ -4,8 +4,10 @@ import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Icon from "../components/ui/Icon";
-import type { FollowUp, Lead, LeadStage } from "../domain/types";
+import InternalLink from "../components/ui/InternalLink";
+import type { Client, FollowUp, Lead, LeadStage } from "../domain/types";
 import type { WorkspaceData } from "../data/workspace-data";
+import type { Navigate } from "../navigation";
 
 const stages: { label: string; value: LeadStage | "all" }[] = [
   { label: "All leads", value: "all" },
@@ -18,12 +20,21 @@ const stages: { label: string; value: LeadStage | "all" }[] = [
 ];
 type LeadsPageProps = {
   data: WorkspaceData;
+  navigate: Navigate;
+  initialSelectedLeadId?: string;
   onAddLead: (input: {
     name: string;
     email?: string;
     phone?: string;
     source?: string;
     estimatedValue?: number;
+  }) => void;
+  onConvertLead: (leadId: string) => void;
+  onCreateProject: (input: {
+    clientId: string;
+    name: string;
+    startDate?: string;
+    deadline?: string;
   }) => void;
   onScheduleFollowUp: (input: { leadId: string; dueAt: string; note: string }) => void;
   onSendFollowUp: (followUpId: string, message: string) => void;
@@ -59,7 +70,11 @@ function makeLocalDateTimeValue(date: Date) {
 
 function LeadsPage({
   data,
+  navigate,
+  initialSelectedLeadId,
   onAddLead,
+  onConvertLead,
+  onCreateProject,
   onScheduleFollowUp,
   onSendFollowUp,
   onCompleteFollowUp,
@@ -67,9 +82,12 @@ function LeadsPage({
   const [stageFilter, setStageFilter] = useState<LeadStage | "all">("all");
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
-  const [selectedLeadId, setSelectedLeadId] = useState(data.leads[0]?.id ?? "");
+  const [selectedLeadId, setSelectedLeadId] = useState(
+    initialSelectedLeadId ?? data.leads[0]?.id ?? "",
+  );
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [formError, setFormError] = useState("");
+
   const [followUpError, setFollowUpError] = useState("");
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [followUpDueDefault, setFollowUpDueDefault] = useState("");
@@ -94,11 +112,23 @@ function LeadsPage({
   }, [data.leads, query, sortOrder, stageFilter]);
   const selectedLead =
     filteredLeads.find((lead) => lead.id === selectedLeadId) ?? filteredLeads[0] ?? null;
+  const selectedClient =
+    selectedLead?.stage === "won"
+      ? data.clients.find((client) => client.id === selectedLead.convertedClientId)
+      : undefined;
   const selectedFollowUps = data.followUps
-    .filter((followUp) => followUp.leadId === selectedLead?.id)
+    .filter((followUp) =>
+      selectedLead?.stage === "won"
+        ? followUp.clientId === selectedClient?.id
+        : followUp.leadId === selectedLead?.id,
+    )
     .sort((first, second) => first.dueAt.localeCompare(second.dueAt));
   const selectedActivities = data.activities
-    .filter((activity) => activity.entityType === "lead" && activity.entityId === selectedLead?.id)
+    .filter(
+      (activity) =>
+        (activity.entityType === "lead" && activity.entityId === selectedLead?.id) ||
+        (activity.entityType === "client" && activity.entityId === selectedClient?.id),
+    )
     .sort((first, second) => second.occurredAt.localeCompare(first.occurredAt));
 
   function submitLead(event: FormEvent<HTMLFormElement>) {
@@ -375,9 +405,16 @@ function LeadsPage({
         {selectedLead && (
           <LeadProfile
             activities={selectedActivities}
+            client={selectedClient}
+            clientProjects={data.projects.filter(
+              ({ project }) => project.clientId === selectedClient?.id,
+            )}
             followUps={selectedFollowUps}
             lead={selectedLead}
+            navigate={navigate}
             onCompleteFollowUp={onCompleteFollowUp}
+            onConvertLead={onConvertLead}
+            onCreateProject={onCreateProject}
             onScheduleFollowUp={() => {
               if (!showFollowUpForm) {
                 setFollowUpDueDefault(
@@ -460,20 +497,38 @@ function LeadsPage({
 function LeadProfile({
   activities,
   children,
+  client,
+  clientProjects,
   followUps,
   lead,
+  navigate,
   onCompleteFollowUp,
+  onConvertLead,
+  onCreateProject,
   onScheduleFollowUp,
   onSend,
 }: {
   activities: WorkspaceData["activities"];
   children: ReactNode;
+  client?: Client;
+  clientProjects: WorkspaceData["projects"];
   followUps: FollowUp[];
   lead: Lead;
+  navigate: Navigate;
   onCompleteFollowUp: (followUpId: string) => void;
+  onConvertLead: (leadId: string) => void;
+  onCreateProject: (input: {
+    clientId: string;
+    name: string;
+    startDate?: string;
+    deadline?: string;
+  }) => void;
   onScheduleFollowUp: () => void;
   onSend: (followUpId: string) => void;
 }) {
+  const [confirmConversion, setConfirmConversion] = useState(false);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+
   return (
     <div className="space-y-4">
       <Card className="p-5 sm:p-6">
@@ -498,14 +553,109 @@ function LeadProfile({
           />
           <Info label="Added" value={formatDate(lead.createdAt)} />
         </div>
-        {lead.stage !== "won" && lead.stage !== "lost" && (
+        {lead.stage === "qualified" || lead.stage === "proposal" ? (
+          <div className="mt-5 rounded-control border border-line bg-canvas p-4">
+            {confirmConversion ? (
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-label font-semibold text-ink">Convert this lead?</h3>
+                  <p className="mt-1 text-caption leading-5 text-muted">
+                    This marks the lead as won, creates a client, and moves its open follow-ups to
+                    that client. You can create a project separately.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => onConvertLead(lead.id)}>Confirm conversion</Button>
+                  <Button onClick={() => setConfirmConversion(false)} variant="secondary">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-caption text-muted">Ready to start working with this client?</p>
+                <Button onClick={() => setConfirmConversion(true)} variant="secondary">
+                  Convert to client
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : null}
+        {lead.stage === "won" && client && (
+          <section
+            aria-label="Converted client"
+            className="mt-5 rounded-control bg-primary-soft p-4"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-caption font-semibold uppercase tracking-[0.08em] text-primary">
+                  Client
+                </p>
+                <h3 className="mt-1 text-label font-semibold text-ink">{client.name}</h3>
+                <p className="mt-1 text-caption text-muted">Converted {formatDate(lead.wonAt)}</p>
+              </div>
+              <InternalLink
+                className="text-caption font-semibold text-primary no-underline hover:underline"
+                href="/clients"
+                navigate={navigate}
+              >
+                View clients
+              </InternalLink>
+            </div>
+            <div className="mt-4 border-t border-primary/15 pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h4 className="text-caption font-semibold text-ink">
+                  Projects ({clientProjects.length})
+                </h4>
+                {!showProjectForm && (
+                  <Button onClick={() => setShowProjectForm(true)} variant="secondary">
+                    <Icon className="size-4" name="plus" />
+                    Create project
+                  </Button>
+                )}
+              </div>
+              {clientProjects.length > 0 && (
+                <ul className="mt-3 divide-y divide-primary/15">
+                  {clientProjects.map(({ project }) => (
+                    <li
+                      className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0"
+                      key={project.id}
+                    >
+                      <span className="text-label font-medium text-ink">{project.name}</span>
+                      <InternalLink
+                        className="text-caption font-semibold text-primary no-underline hover:underline"
+                        href={`/projects/${project.id}`}
+                        navigate={navigate}
+                      >
+                        View project
+                      </InternalLink>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {showProjectForm && (
+                <ProjectCreationForm
+                  client={client}
+                  onCancel={() => setShowProjectForm(false)}
+                  onCreate={(input) => {
+                    onCreateProject(input);
+                    setShowProjectForm(false);
+                  }}
+                />
+              )}
+            </div>
+          </section>
+        )}
+        {(lead.stage !== "won" && lead.stage !== "lost") || client ? (
           <div className="mt-5">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-label font-semibold text-ink">Follow-ups</h3>
-              <Button onClick={onScheduleFollowUp} variant="secondary">
-                <Icon className="size-4" name="plus" />
-                Schedule
-              </Button>
+              {lead.stage !== "won" && lead.stage !== "lost" && (
+                <Button onClick={onScheduleFollowUp} variant="secondary">
+                  <Icon className="size-4" name="plus" />
+                  Schedule
+                </Button>
+              )}
             </div>
             {followUps.length === 0 ? (
               <p className="mt-3 text-label text-muted">No follow-ups scheduled.</p>
@@ -548,7 +698,7 @@ function LeadProfile({
             )}
             {children}
           </div>
-        )}
+        ) : null}
       </Card>
       <Card className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
@@ -582,6 +732,97 @@ function LeadProfile({
         )}
       </Card>
     </div>
+  );
+}
+
+function ProjectCreationForm({
+  client,
+  onCancel,
+  onCreate,
+}: {
+  client: Client;
+  onCancel: () => void;
+  onCreate: (input: {
+    clientId: string;
+    name: string;
+    startDate?: string;
+    deadline?: string;
+  }) => void;
+}) {
+  const [formError, setFormError] = useState("");
+
+  function submitProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") ?? "").trim();
+    const startDate = String(formData.get("startDate") ?? "");
+    const deadline = String(formData.get("deadline") ?? "");
+    if (!name) {
+      setFormError("Enter a project name.");
+      return;
+    }
+    if (startDate && deadline && deadline < startDate) {
+      setFormError("The deadline must be on or after the start date.");
+      return;
+    }
+    onCreate({
+      clientId: client.id,
+      name,
+      startDate: startDate || undefined,
+      deadline: deadline || undefined,
+    });
+  }
+
+  return (
+    <form
+      className="mt-4 space-y-3 rounded-control border border-line bg-surface p-4"
+      onSubmit={submitProject}
+    >
+      <h4 className="text-label font-semibold text-ink">New project for {client.name}</h4>
+      <label className="block space-y-1.5 text-caption font-medium text-ink">
+        Project name
+        <input
+          autoFocus
+          className="min-h-10 w-full rounded-control border border-line bg-surface px-3 text-label"
+          maxLength={120}
+          name="name"
+          required
+          defaultValue={client.name}
+        />
+      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block space-y-1.5 text-caption font-medium text-ink">
+          Start date <span className="font-normal text-muted">Optional</span>
+          <input
+            className="min-h-10 w-full rounded-control border border-line bg-surface px-3 text-label"
+            name="startDate"
+            type="date"
+          />
+        </label>
+        <label className="block space-y-1.5 text-caption font-medium text-ink">
+          Deadline <span className="font-normal text-muted">Optional</span>
+          <input
+            className="min-h-10 w-full rounded-control border border-line bg-surface px-3 text-label"
+            name="deadline"
+            type="date"
+          />
+        </label>
+      </div>
+      <p className="text-caption leading-5 text-muted">
+        New projects start in Planning. You can add milestones and tasks in the next build step.
+      </p>
+      {formError && (
+        <p className="text-caption text-warm" role="alert">
+          {formError}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit">Save project</Button>
+        <Button onClick={onCancel} variant="secondary">
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
 

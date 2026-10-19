@@ -13,13 +13,23 @@ import { signOut } from "./auth/auth-service";
 import { useAuth } from "./auth/use-auth";
 import type { AppSupabaseClient } from "./data/supabase-client";
 import { useWorkspaceData } from "./data/use-workspace-data";
-import { createFollowUp, createLead, createLeadActivity } from "./data/workspace-data";
+import {
+  convertLeadToClient,
+  createClientActivity,
+  createFollowUp,
+  createLead,
+  createLeadActivity,
+  createProject,
+  createProjectActivity,
+} from "./data/workspace-data";
 import AppShell from "./layout/AppShell";
 import { useNavigation } from "./navigation";
 import Dashboard from "./pages/Dashboard";
+import ClientsPage from "./pages/ClientsPage";
 import DetailPage from "./pages/DetailPage";
 import LeadsPage from "./pages/LeadsPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import ProjectsPage from "./pages/ProjectsPage";
 import ReferencePage from "./pages/ReferencePage";
 import WorkspacePage from "./pages/WorkspacePage";
 import PortalLayout from "./portal/PortalLayout";
@@ -241,6 +251,62 @@ function WorkspaceApp({
     }));
   };
 
+  const convertLead = (leadId: string) => {
+    updateData((current) => {
+      const lead = current.leads.find((item) => item.id === leadId);
+      if (!lead || lead.stage === "won" || lead.stage === "lost") return current;
+      const existingClient = current.clients.find(
+        (client) =>
+          client.sourceLeadId === lead.id ||
+          (Boolean(lead.email) &&
+            client.email?.trim().toLowerCase() === lead.email?.trim().toLowerCase()),
+      );
+      const { client, lead: convertedLead } = convertLeadToClient(lead, existingClient);
+      return {
+        ...current,
+        leads: current.leads.map((item) => (item.id === leadId ? convertedLead : item)),
+        clients: existingClient
+          ? current.clients.map((item) => (item.id === client.id ? client : item))
+          : [client, ...current.clients],
+        followUps: current.followUps.map((followUp) =>
+          followUp.leadId === leadId && followUp.status === "open"
+            ? {
+                id: followUp.id,
+                workspaceId: followUp.workspaceId,
+                ownerId: followUp.ownerId,
+                dueAt: followUp.dueAt,
+                status: followUp.status,
+                note: followUp.note,
+                createdAt: followUp.createdAt,
+                clientId: client.id,
+              }
+            : followUp,
+        ),
+        activities: [
+          createLeadActivity(leadId, "lead_converted", `Converted to client: ${client.name}`),
+          ...current.activities,
+        ],
+      };
+    });
+  };
+
+  const addProject = (input: {
+    clientId: string;
+    name: string;
+    startDate?: string;
+    deadline?: string;
+  }) => {
+    const project = createProject(input);
+    updateData((current) => ({
+      ...current,
+      projects: [project, ...current.projects],
+      activities: [
+        createProjectActivity(project.project.id, `Project created: ${project.project.name}`),
+        ...current.activities,
+      ],
+    }));
+  };
+
   const scheduleFollowUp = (input: { leadId: string; dueAt: string; note: string }) => {
     const followUp = createFollowUp(input);
     updateData((current) => ({
@@ -260,20 +326,29 @@ function WorkspaceApp({
   const sendFollowUp = (followUpId: string, message: string) => {
     updateData((current) => {
       const followUp = current.followUps.find((item) => item.id === followUpId);
-      if (!followUp || !followUp.leadId || followUp.status !== "open") return current;
+      if (!followUp || followUp.status !== "open") return current;
+      let activity;
+      if (followUp.leadId) {
+        activity = createLeadActivity(
+          followUp.leadId,
+          "follow_up_sent",
+          `Follow-up logged as sent: ${message.slice(0, 90)}`,
+        );
+      } else if (followUp.clientId) {
+        activity = createClientActivity(
+          followUp.clientId,
+          "follow_up_sent",
+          `Follow-up logged as sent: ${message.slice(0, 90)}`,
+        );
+      } else {
+        return current;
+      }
       return {
         ...current,
         followUps: current.followUps.map((item) =>
           item.id === followUpId ? { ...item, status: "sent" } : item,
         ),
-        activities: [
-          createLeadActivity(
-            followUp.leadId,
-            "follow_up_sent",
-            `Follow-up logged as sent: ${message.slice(0, 90)}`,
-          ),
-          ...current.activities,
-        ],
+        activities: [activity, ...current.activities],
       };
     });
   };
@@ -281,23 +356,47 @@ function WorkspaceApp({
   const completeFollowUp = (followUpId: string) => {
     updateData((current) => {
       const followUp = current.followUps.find((item) => item.id === followUpId);
-      if (!followUp || !followUp.leadId || followUp.status !== "open") return current;
+      if (!followUp || followUp.status !== "open") return current;
+      let activity;
+      if (followUp.leadId) {
+        activity = createLeadActivity(
+          followUp.leadId,
+          "follow_up_completed",
+          `Follow-up completed: ${followUp.note}`,
+        );
+      } else if (followUp.clientId) {
+        activity = createClientActivity(
+          followUp.clientId,
+          "follow_up_completed",
+          `Follow-up completed: ${followUp.note}`,
+        );
+      } else {
+        return current;
+      }
       return {
         ...current,
         followUps: current.followUps.map((item) =>
           item.id === followUpId ? { ...item, status: "done" } : item,
         ),
-        activities: [
-          createLeadActivity(
-            followUp.leadId,
-            "follow_up_completed",
-            `Follow-up completed: ${followUp.note}`,
-          ),
-          ...current.activities,
-        ],
+        activities: [activity, ...current.activities],
       };
     });
   };
+
+  const renderLeadsPage = (initialSelectedLeadId?: string) => (
+    <LeadsPage
+      data={data}
+      initialSelectedLeadId={initialSelectedLeadId}
+      key={initialSelectedLeadId ?? "workspace-leads"}
+      navigate={navigate}
+      onAddLead={addLead}
+      onCompleteFollowUp={completeFollowUp}
+      onConvertLead={convertLead}
+      onCreateProject={addProject}
+      onScheduleFollowUp={scheduleFollowUp}
+      onSendFollowUp={sendFollowUp}
+    />
+  );
 
   async function handleSignOut() {
     if (!authClient) return;
@@ -317,21 +416,22 @@ function WorkspaceApp({
     case "workspace":
       page =
         route.title === "Leads" ? (
-          <LeadsPage
-            data={data}
-            onAddLead={addLead}
-            onCompleteFollowUp={completeFollowUp}
-            onScheduleFollowUp={scheduleFollowUp}
-            onSendFollowUp={sendFollowUp}
-          />
+          renderLeadsPage()
+        ) : route.title === "Clients" ? (
+          <ClientsPage data={data} navigate={navigate} />
+        ) : route.title === "Projects" ? (
+          <ProjectsPage data={data} navigate={navigate} />
         ) : (
           <WorkspacePage description={route.description} title={route.title} />
         );
       break;
     case "detail":
-      page = (
-        <DetailPage entity={route.entity} id={route.id} navigate={navigate} title={route.title} />
-      );
+      page =
+        route.entity === "lead" ? (
+          renderLeadsPage(route.id)
+        ) : (
+          <DetailPage entity={route.entity} id={route.id} navigate={navigate} title={route.title} />
+        );
       break;
     case "reference":
       page = <ReferencePage />;

@@ -28,6 +28,7 @@ function createData(now: Date): WorkspaceData {
     contactsUsed: 2,
     contactsLimit: 1000,
     leads: [currentMonthLead, priorMonthLead],
+    clients: [],
     followUps: [],
     activities: [],
     projects: [],

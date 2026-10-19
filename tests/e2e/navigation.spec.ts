@@ -43,6 +43,41 @@ test("a new lead and follow-up persist in the local demo workspace", async ({ pa
   await expect(page.getByText("Sent", { exact: true })).toBeVisible();
 });
 
+test("a qualified lead converts to a client and can create a project", async ({ page }) => {
+  await page.goto("/leads");
+  await page.getByRole("button", { name: /Sofia Martin/ }).click();
+  await page.getByRole("button", { name: "Convert to client" }).click();
+  await page.getByRole("button", { name: "Confirm conversion" }).click();
+
+  const clientPanel = page.getByRole("region", { name: "Converted client" });
+  await expect(clientPanel.getByText("Sofia Martin")).toBeVisible();
+  await expect(page.getByText("Confirm the project brief", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByLabel("Project name").fill("Kitchen refresh");
+  await page.getByRole("button", { name: "Save project" }).click();
+
+  await expect(clientPanel.getByText("Kitchen refresh")).toBeVisible();
+  await page.getByRole("link", { name: "Projects" }).click();
+  await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+  await expect(page.getByText("Kitchen refresh")).toBeVisible();
+
+  await page.getByRole("link", { name: "Clients" }).click();
+  await page.getByRole("link", { name: "Source lead" }).first().click();
+  await expect(page).toHaveURL(/\/leads\/lead-sofia$/);
+  await expect(
+    page.getByRole("region", { name: "Converted client" }).getByRole("heading", {
+      name: "Sofia Martin",
+    }),
+  ).toBeVisible();
+
+  await page.reload();
+  await expect(
+    page.getByRole("region", { name: "Converted client" }).getByRole("heading", {
+      name: "Sofia Martin",
+    }),
+  ).toBeVisible();
+});
+
 test("business and customer sign-in have separate entry pages", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Welcome to TELOS" })).toBeVisible();

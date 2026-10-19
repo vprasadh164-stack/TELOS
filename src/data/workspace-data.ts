@@ -1,4 +1,4 @@
-import type { Activity, FollowUp, Lead, Project, WorkStatus } from "../domain/types.js";
+import type { Activity, Client, FollowUp, Lead, Project, WorkStatus } from "../domain/types.js";
 
 export interface DemoProject {
   project: Project;
@@ -12,6 +12,7 @@ export interface WorkspaceData {
   contactsUsed: number;
   contactsLimit: number;
   leads: Lead[];
+  clients: Client[];
   followUps: FollowUp[];
   activities: Activity[];
   projects: DemoProject[];
@@ -69,7 +70,9 @@ function createSeedData(): WorkspaceData {
       source: "Referral",
       ownerId,
       estimatedValue: 18200,
-      stage: "proposal",
+      stage: "won",
+      wonAt: leadCreated(1),
+      convertedClientId: "client-abc",
       createdAt: leadCreated(12),
       updatedAt: leadCreated(3),
     },
@@ -123,6 +126,18 @@ function createSeedData(): WorkspaceData {
     contactsUsed: 742,
     contactsLimit: 1000,
     leads,
+    clients: [
+      {
+        id: "client-abc",
+        workspaceId,
+        name: "ABC Restaurant",
+        email: "hello@abcrestaurant.example",
+        sourceLeadId: "lead-abc",
+        ownerId,
+        createdAt: leadCreated(1),
+        updatedAt: leadCreated(1),
+      },
+    ],
     followUps,
     activities: [
       {
@@ -181,12 +196,15 @@ function createSeedData(): WorkspaceData {
   };
 }
 
-function isWorkspaceData(value: unknown): value is WorkspaceData {
+type StoredWorkspaceData = Omit<WorkspaceData, "clients"> & { clients?: Client[] };
+
+function isWorkspaceData(value: unknown): value is StoredWorkspaceData {
   if (!value || typeof value !== "object") return false;
-  const data = value as Partial<WorkspaceData>;
+  const data = value as Partial<StoredWorkspaceData>;
   return (
     typeof data.ownerName === "string" &&
     Array.isArray(data.leads) &&
+    (data.clients === undefined || Array.isArray(data.clients)) &&
     Array.isArray(data.followUps) &&
     Array.isArray(data.activities) &&
     Array.isArray(data.projects) &&
@@ -211,12 +229,34 @@ export const demoWorkspaceService: WorkspaceService = {
         "Saved TELOS demo data has an unexpected format. Clear this browser's TELOS demo data to restart.",
       );
     }
-    return parsedData;
+    const migratedData: WorkspaceData = {
+      ...parsedData,
+      clients: parsedData.clients ?? clientsFromProjects(parsedData.projects),
+    };
+    if (parsedData.clients === undefined) this.save(migratedData, scope);
+    return migratedData;
   },
   save(data, scope = "local-preview") {
     window.localStorage.setItem(storageKey(scope), JSON.stringify(data));
   },
 };
+
+function clientsFromProjects(projects: DemoProject[]): Client[] {
+  const clients = new Map<string, Client>();
+  for (const { project } of projects) {
+    if (!clients.has(project.clientId)) {
+      clients.set(project.clientId, {
+        id: project.clientId,
+        workspaceId: project.workspaceId,
+        name: project.name,
+        ownerId: project.ownerId,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      });
+    }
+  }
+  return [...clients.values()];
+}
 
 export function createLead(input: {
   name: string;
@@ -238,6 +278,77 @@ export function createLead(input: {
     stage: "new",
     createdAt: now,
     updatedAt: now,
+  };
+}
+
+export function convertLeadToClient(
+  lead: Lead,
+  existingClient?: Client,
+): {
+  client: Client;
+  lead: Extract<Lead, { stage: "won" }>;
+} {
+  if (lead.stage === "won" || lead.stage === "lost") {
+    throw new Error("Only an active lead can be converted to a client.");
+  }
+
+  const now = new Date().toISOString();
+  const clientId = existingClient?.id ?? crypto.randomUUID();
+  const client: Client = existingClient
+    ? {
+        ...existingClient,
+        email: existingClient.email ?? lead.email,
+        phone: existingClient.phone ?? lead.phone,
+        sourceLeadId: lead.id,
+        updatedAt: now,
+      }
+    : {
+        id: clientId,
+        workspaceId: lead.workspaceId,
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        sourceLeadId: lead.id,
+        ownerId: lead.ownerId,
+        createdAt: now,
+        updatedAt: now,
+      };
+  return {
+    client,
+    lead: {
+      ...lead,
+      stage: "won",
+      wonAt: now,
+      convertedClientId: clientId,
+      updatedAt: now,
+    },
+  };
+}
+
+export function createProject(input: {
+  clientId: string;
+  name: string;
+  startDate?: string;
+  deadline?: string;
+}): DemoProject {
+  const now = new Date().toISOString();
+  const project: Project = {
+    id: crypto.randomUUID(),
+    workspaceId,
+    clientId: input.clientId,
+    name: input.name.trim(),
+    status: "planning",
+    ownerId,
+    startDate: input.startDate || undefined,
+    deadline: input.deadline || undefined,
+    createdAt: now,
+    updatedAt: now,
+  };
+  return {
+    project,
+    progress: 0,
+    nextMilestone: "No milestones yet",
+    nextMilestoneStatus: "not_started",
   };
 }
 
@@ -270,6 +381,38 @@ export function createLeadActivity(
     entityId: leadId,
     actor: { kind: "member", userId: ownerId },
     type,
+    summary,
+    visibility: "internal",
+    occurredAt: new Date().toISOString(),
+  };
+}
+
+export function createClientActivity(
+  clientId: string,
+  type: Activity["type"],
+  summary: string,
+): Activity {
+  return {
+    id: crypto.randomUUID(),
+    workspaceId,
+    entityType: "client",
+    entityId: clientId,
+    actor: { kind: "member", userId: ownerId },
+    type,
+    summary,
+    visibility: "internal",
+    occurredAt: new Date().toISOString(),
+  };
+}
+
+export function createProjectActivity(projectId: string, summary: string): Activity {
+  return {
+    id: crypto.randomUUID(),
+    workspaceId,
+    entityType: "project",
+    entityId: projectId,
+    actor: { kind: "member", userId: ownerId },
+    type: "project_created",
     summary,
     visibility: "internal",
     occurredAt: new Date().toISOString(),

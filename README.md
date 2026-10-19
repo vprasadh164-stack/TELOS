@@ -68,8 +68,10 @@ The working demo slice covers adding and searching leads, stage filters and
 counts, sorting, lead profiles with activity, scheduling/completing follow-ups,
 logging a template follow-up as sent, and dashboard metrics derived from demo
 data. "Log as sent" records an activity only; no email is delivered. The next
-approved core-flow work is lead conversion, project creation, and project
-details.
+core-flow slice also supports converting qualified or proposal-stage leads to
+clients, moving their open follow-ups to the client, creating planning projects,
+and viewing client/project lists. Project milestones, tasks, files, and full
+project details are the next implementation step.
 
 ## Authentication setup
 

@@ -132,7 +132,7 @@ statuses are separate; see `AGENTS.md` for open product decisions.
 
 GitHub Pages is free for public repositories. The `Deploy GitHub Pages`
 workflow builds the site from `main` and publishes the `dist` directory with
-`VITE_DEMO_MODE=true`. It also copies the app entry point to `404.html` so
+demo mode by default. It also copies the app entry point to `404.html` so
 direct visits and refreshes on client-side routes work. The `public/CNAME` file
 configures `telos.codes`.
 
@@ -161,9 +161,20 @@ own browser. The app displays a demo notice, and edits stay in that browser's
 local storage. Do not enter real customer, business, or confidential
 information.
 
-When Supabase is ready, configure `VITE_SUPABASE_URL` and
-`VITE_SUPABASE_ANON_KEY` as GitHub Actions variables, apply both migrations,
-and configure Supabase Auth's site URL and Google OAuth redirects for
-`https://telos.codes/auth/callback`. Only then remove `VITE_DEMO_MODE` from the
-workflow and redeploy to restore the production sign-in gate. Until this is
-done, the public site intentionally remains a sample-data preview.
+To enable authenticated sign-in, first apply both Supabase migrations in order,
+configure Google as an Auth provider, and allow `https://telos.codes` and
+`https://telos.codes/auth/callback` in Supabase Auth URL settings. Then add
+these repository **Actions variables** under **Settings > Secrets and
+variables > Actions > Variables**:
+
+- `VITE_SUPABASE_URL`: the project's HTTPS URL.
+- `VITE_SUPABASE_ANON_KEY`: the public anon/publishable key only. Never use a
+  service-role key in a browser build.
+- `VITE_AUTH_ENABLED`: set to the exact string `true` only after Google OAuth
+  and both migrations have been configured and verified.
+
+Run the `Deploy GitHub Pages` workflow manually after setting the variables.
+The workflow fails safely if auth is enabled but either Supabase value is
+missing. If `VITE_AUTH_ENABLED` is not `true`, it continues to publish the
+sample-data demo. Do not enable the production sign-in gate until Google OAuth
+and the database schema have both been tested.

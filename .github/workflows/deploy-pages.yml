@@ -39,10 +39,31 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Build demo preview
+      - name: Select deployment mode
+        shell: bash
+        env:
+          AUTH_ENABLED: ${{ vars.VITE_AUTH_ENABLED }}
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [[ "$AUTH_ENABLED" == "true" ]]; then
+            if [[ -z "$SUPABASE_URL" || -z "$SUPABASE_ANON_KEY" ]]; then
+              echo "VITE_AUTH_ENABLED=true requires VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY." >&2
+              exit 1
+            fi
+            echo "VITE_DEMO_MODE=false" >> "$GITHUB_ENV"
+            echo "Authenticated deployment selected."
+          else
+            echo "VITE_DEMO_MODE=true" >> "$GITHUB_ENV"
+            echo "Demo deployment selected. Set VITE_AUTH_ENABLED=true after configuring Supabase and Google OAuth."
+          fi
+
+      - name: Build TELOS
         run: pnpm build
         env:
-          VITE_DEMO_MODE: "true"
+          VITE_DEMO_MODE: ${{ env.VITE_DEMO_MODE }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
 
       - name: Add SPA route fallback
         run: cp dist/index.html dist/404.html

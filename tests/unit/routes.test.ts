@@ -17,6 +17,7 @@ describe("getRoute", () => {
     ["/clients", "workspace"],
     ["/projects", "workspace"],
     ["/projects/abc", "detail"],
+    ["/pricing", "workspace"],
     ["/automations", "workspace"],
     ["/messages", "workspace"],
     ["/reports", "workspace"],

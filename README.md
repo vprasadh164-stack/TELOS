@@ -75,6 +75,11 @@ browser local storage. "Log as sent" records an activity only; no email is
 delivered. Project milestones, tasks, files, full project details, and customer
 portal permissions are not yet connected to Supabase.
 
+The Pricing page is a placeholder until subscription terms and Stripe are
+configured. No plan prices, checkout, or charges are active. Google sign-in
+screens are present, but OAuth remains unavailable until the Supabase public
+key and Google provider are configured as described below.
+
 ## Authentication setup
 
 The sign-in pages use Supabase Auth's Google OAuth. To connect a project:

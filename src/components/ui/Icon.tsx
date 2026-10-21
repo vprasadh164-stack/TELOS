@@ -12,6 +12,7 @@ export type IconName =
   | "search"
   | "settings"
   | "sparkles"
+  | "tag"
   | "users";
 
 const iconPaths: Record<IconName, string> = {
@@ -30,6 +31,7 @@ const iconPaths: Record<IconName, string> = {
     "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0-5v2m0 14v2m9-9h-2M5 12H3m15.36-6.36-1.42 1.42M7.06 16.94l-1.42 1.42m12.72 0-1.42-1.42M7.06 7.06 5.64 5.64",
   sparkles:
     "m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 14l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z",
+  tag: "M20 12 12 20 3 11V4h7l10 8zm-12-5h.01",
   users:
     "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m6-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8m7-7a4 4 0 0 1 0 8m3 4a4 4 0 0 1 2 3v2",
 };

@@ -12,6 +12,7 @@ const navItems: { href: string; icon: IconName; label: string }[] = [
   { href: "/automations", icon: "sparkles", label: "Automations" },
   { href: "/messages", icon: "message", label: "Messages" },
   { href: "/reports", icon: "chart", label: "Reports" },
+  { href: "/pricing", icon: "tag", label: "Pricing" },
   { href: "/settings", icon: "settings", label: "Settings" },
 ];
 
@@ -100,14 +101,13 @@ function Sidebar({ contactsLimit, contactsUsed, navigate, ownerName, pathname }:
           </span>
         </div>
         <ProgressBar label="Monthly contacts used" value={contactsProgress} />
-        <button
-          className="mt-3 text-caption font-semibold text-primary hover:underline"
-          disabled
-          title="Plan upgrades will be available later"
-          type="button"
+        <InternalLink
+          className="mt-3 inline-flex text-caption font-semibold text-primary no-underline hover:underline"
+          href="/pricing"
+          navigate={navigate}
         >
-          Upgrade plan
-        </button>
+          View pricing
+        </InternalLink>
       </div>
 
       <div className="mt-4 hidden items-center gap-3 border-t border-line px-2 pt-4 md:flex">

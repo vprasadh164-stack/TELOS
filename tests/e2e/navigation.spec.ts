@@ -9,6 +9,11 @@ test("workspace links navigate between starter pages", async ({ page }) => {
   await page.getByRole("link", { name: "Leads" }).click();
   await expect(page).toHaveURL(/\/leads$/);
   await expect(page.getByRole("heading", { name: "Leads" })).toBeVisible();
+
+  await page.getByRole("link", { name: "Pricing", exact: true }).click();
+  await expect(page).toHaveURL(/\/pricing$/);
+  await expect(page.getByRole("heading", { name: "Pricing is being prepared." })).toBeVisible();
+  await expect(page.getByText(/No plan prices or charges are active/)).toBeVisible();
 });
 
 test("the client portal uses its own layout", async ({ page }) => {

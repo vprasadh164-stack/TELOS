@@ -38,6 +38,7 @@ import ClientsPage from "./pages/ClientsPage";
 import DetailPage from "./pages/DetailPage";
 import LeadsPage from "./pages/LeadsPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import PricingPage from "./pages/PricingPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ReferencePage from "./pages/ReferencePage";
 import WorkspacePage from "./pages/WorkspacePage";
@@ -473,6 +474,8 @@ function WorkspaceApp({
           <ClientsPage data={data} navigate={navigate} />
         ) : route.title === "Projects" ? (
           <ProjectsPage data={data} navigate={navigate} />
+        ) : route.title === "Pricing" ? (
+          <PricingPage />
         ) : (
           <WorkspacePage description={route.description} title={route.title} />
         );

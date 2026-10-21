@@ -35,6 +35,10 @@ const workspacePages: Record<string, { description: string; title: string }> = {
     title: "Projects",
     description: "Keep active work and upcoming milestones together.",
   },
+  "/pricing": {
+    title: "Pricing",
+    description: "Plan details will be published here when TELOS billing is ready.",
+  },
   "/reports": {
     title: "Reports",
     description: "A clear view of your pipeline and project activity will appear here.",

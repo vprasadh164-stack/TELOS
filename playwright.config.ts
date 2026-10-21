@@ -5,13 +5,14 @@ export default defineConfig({
   reporter: "list",
   testDir: "./tests/e2e",
   use: {
-    baseURL: "http://localhost:8443",
+    baseURL: "http://localhost:8444",
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "corepack pnpm@10 dev",
-    reuseExistingServer: !process.env.CI,
+    command: "corepack pnpm@10 exec vite --host localhost --port 8444",
+    env: { VITE_DEMO_MODE: "true" },
+    reuseExistingServer: false,
     timeout: 60_000,
-    url: "http://localhost:8443",
+    url: "http://localhost:8444",
   },
 });

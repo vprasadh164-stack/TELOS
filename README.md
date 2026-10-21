@@ -44,48 +44,51 @@ pnpm exec playwright install chromium
   activity, follow-up, message, file, and portal-access types.
 - `src/domain/dashboard-metrics.ts` derives dashboard counts and pipeline totals.
 - `src/data/` contains the typed workspace service, browser demo adapter, and
-  Supabase client configuration.
+  Supabase client configuration and workspace adapter.
 - `src/auth/` contains Google OAuth flows, business-verification gating, and
   customer project-access request screens.
-- `supabase/migrations/` contains database tables, RLS policies, and RPCs for
-  business applications and customer access requests.
+- `supabase/migrations/` contains database tables, RLS policies, and atomic
+  RPCs for authentication, workspace data, and customer access requests.
 - `tests/unit/` contains route and other domain unit tests.
 - `tests/e2e/` contains browser smoke tests.
 - `src/index.css` imports Tailwind CSS and defines design tokens in `@theme`.
 - `vite.config.ts` configures React, Tailwind CSS v4, and the local server.
 
-Leads, follow-ups, and activity persist in this browser's local storage for the
-demo. Supabase's SDK and a public-key client factory are installed, but no
-Supabase project is connected yet; the app uses the local demo adapter until
-the database schema, row-level security policies, authentication, and project
-credentials are set up. Copy `.env.example` to `.env.local` only when you have
-a Supabase project. The browser must only receive the public anon/publishable
-key; never put a service-role key in frontend configuration. The original
-Figma artwork is not copied into this repository; `/reference` explains this
-and unfinished pages remain intentionally simple placeholders.
+The GitHub Pages site is still an unauthenticated local-storage demo. The
+authenticated workspace now has a Supabase data adapter and tenant-scoped
+database schema, but no Supabase project is connected to this repository yet.
+Create a Supabase project, apply both migrations in order, and configure
+Google OAuth before using the authenticated workspace. Copy `.env.example` to
+`.env.local` and set the project's URL and public anon/publishable key. The
+browser must only receive that public key; never put a service-role key in
+frontend configuration. Demo data is not automatically copied to a new
+Supabase workspace. The original Figma artwork is not copied into this
+repository; `/reference` explains this and unfinished pages remain intentionally
+simple placeholders.
 
-The working demo slice covers adding and searching leads, stage filters and
-counts, sorting, lead profiles with activity, scheduling/completing follow-ups,
-logging a template follow-up as sent, and dashboard metrics derived from demo
-data. "Log as sent" records an activity only; no email is delivered. The next
-core-flow slice also supports converting qualified or proposal-stage leads to
-clients, moving their open follow-ups to the client, creating planning projects,
-and viewing client/project lists. Project milestones, tasks, files, and full
-project details are the next implementation step.
+The current workspace flow supports adding and searching leads, stage filters
+and counts, sorting, lead profiles with activity, scheduling/completing
+follow-ups, converting eligible leads into clients, creating planning projects,
+and viewing client/project lists. These operations use Supabase RPCs and
+database transactions in an authenticated workspace; the public demo uses
+browser local storage. "Log as sent" records an activity only; no email is
+delivered. Project milestones, tasks, files, full project details, and customer
+portal permissions are not yet connected to Supabase.
 
 ## Authentication setup
 
-The sign-in pages use Supabase Auth's Google OAuth. They are intentionally
-inactive until you connect a Supabase project:
+The sign-in pages use Supabase Auth's Google OAuth. To connect a project:
 
 1. Create a Supabase project and copy `.env.example` to `.env.local`.
 2. Set `VITE_SUPABASE_URL` and the project's public anon/publishable key in
    `.env.local`. Never put a service-role key in frontend variables.
 3. In Supabase Auth, enable Google and configure the Google OAuth client ID and
    secret in the Supabase dashboard (not in this repository). Add
-   `http://localhost:8443/auth/callback` to the allowed redirect URLs.
-4. Apply `supabase/migrations/20261017000000_auth_and_access_requests.sql`
-   using the Supabase SQL editor or CLI.
+   `http://localhost:8443/auth/callback` and, when ready to replace the public
+   demo, `https://telos.codes/auth/callback` to the allowed redirect URLs.
+4. Run `supabase/migrations/20261017000000_auth_and_access_requests.sql` and
+   then `supabase/migrations/20261019000000_workspace_data.sql` in the
+   Supabase SQL editor, in that order.
 5. Restart `pnpm dev` and use `/login` to choose the business or customer sign-in.
 
 Business sign-in and customer sign-in use the same Google identity, but start
@@ -107,14 +110,14 @@ only that business and the requesting customer can read them. Approval records
 the business's decision; connecting an approved request to actual project
 portal permissions is still future work.
 
-**Current persistence boundary:** lead, follow-up, and project demo data still
-uses browser local storage (separate keys per signed-in business account); it
-is not synced to Supabase. Do not use this preview to store real or sensitive
-customer data. Tenant-backed business records, actual project-scoped portal
-access, and admin review UI must be implemented before production use. Database
-RLS in this migration protects the new application/request tables; it does not
-yet protect future leads/projects tables, which must each receive their own
-RLS policies before being exposed.
+**Current persistence boundary:** an authenticated, approved business account
+loads and mutates its leads, clients, projects, follow-ups, and activities in
+its RLS-protected Supabase workspace. The GitHub Pages demo remains
+browser-local, and it is separate from any authenticated workspace. No
+Supabase project or OAuth provider is configured yet, so the live domain is
+still the sample demo. Project milestones, tasks, files, portal access, and
+customer-scoped data policies are not implemented; do not treat the portal or
+demo as production-ready.
 
 The approved sales vocabulary is `new → contacted → qualified → proposal → won`
 with `lost` as a terminal lead outcome. Project lifecycle and task/milestone
@@ -153,10 +156,9 @@ own browser. The app displays a demo notice, and edits stay in that browser's
 local storage. Do not enter real customer, business, or confidential
 information.
 
-When Supabase is ready, update the Pages build workflow to configure
-`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, apply the migration above,
+When Supabase is ready, configure `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY` as GitHub Actions variables, apply both migrations,
 and configure Supabase Auth's site URL and Google OAuth redirects for
-`https://telos.codes/auth/callback`. Remove `VITE_DEMO_MODE` from the workflow
-and redeploy to restore the production sign-in gate. The temporary preview
-does not enable Google sign-in, business verification, or real customer portal
-access.
+`https://telos.codes/auth/callback`. Only then remove `VITE_DEMO_MODE` from the
+workflow and redeploy to restore the production sign-in gate. Until this is
+done, the public site intentionally remains a sample-data preview.

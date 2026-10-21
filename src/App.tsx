@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import {
   AuthCallbackPage,
   BusinessAccessGate,
@@ -14,6 +15,13 @@ import { useAuth } from "./auth/use-auth";
 import type { AppSupabaseClient } from "./data/supabase-client";
 import { useWorkspaceData } from "./data/use-workspace-data";
 import {
+  convertSupabaseLead,
+  createSupabaseLead,
+  createSupabaseProject,
+  scheduleSupabaseFollowUp,
+  updateSupabaseFollowUp,
+} from "./data/supabase-workspace-data";
+import {
   convertLeadToClient,
   createClientActivity,
   createFollowUp,
@@ -22,6 +30,7 @@ import {
   createProject,
   createProjectActivity,
 } from "./data/workspace-data";
+import Button from "./components/ui/Button";
 import AppShell from "./layout/AppShell";
 import { useNavigation } from "./navigation";
 import Dashboard from "./pages/Dashboard";
@@ -43,12 +52,7 @@ function App() {
   const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
 
   if (route.kind === "login") {
-    return (
-      <LoginChoicePage
-        demoAvailable={!auth.configured && import.meta.env.DEV}
-        navigate={navigate}
-      />
-    );
+    return <LoginChoicePage demoAvailable={!auth.configured && demoMode} navigate={navigate} />;
   }
   if (route.kind === "business-login" || route.kind === "customer-login") {
     return (
@@ -110,11 +114,11 @@ function App() {
     );
   }
 
-  if (auth.error && !auth.client) {
+  if (auth.error && !auth.client && !demoMode) {
     return <ConfigurationError message={auth.error} />;
   }
 
-  if (!auth.configured && !import.meta.env.DEV && !demoMode && route.kind !== "reference") {
+  if (!auth.configured && !demoMode && route.kind !== "reference") {
     return (
       <ConfigurationError message="Supabase authentication must be configured before the TELOS app can be used." />
     );
@@ -158,6 +162,8 @@ function App() {
           route={route}
           scope={auth.user?.id ?? "unauthenticated"}
           authClient={auth.client}
+          userId={auth.user?.id}
+          ownerName={getUserDisplayName(auth.user)}
         />
       </BusinessAccessGate>
     );
@@ -205,6 +211,8 @@ function WorkspaceApp({
   route,
   scope,
   authClient,
+  userId = "",
+  ownerName = "",
   previewMode = false,
 }: {
   navigate: (to: string) => void;
@@ -212,21 +220,41 @@ function WorkspaceApp({
   route: ReturnType<typeof getRoute>;
   scope: string;
   authClient: AppSupabaseClient | null;
+  userId?: string;
+  ownerName?: string;
   previewMode?: boolean;
 }) {
   const [signOutError, setSignOutError] = useState<string | null>(null);
-  const { data, error, updateData } = useWorkspaceData(true, scope);
+  const { data, error, updateData, runRemote, reload } = useWorkspaceData(
+    true,
+    scope,
+    authClient,
+    userId,
+    ownerName,
+    previewMode,
+  );
 
   if (!data) {
-    return (
-      <LoadingPage
-        label={
-          error
-            ? "Could not open this browser's demo workspace. Clear its TELOS demo data to restart."
-            : "Loading your workspace…"
-        }
-      />
-    );
+    if (error) {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-canvas px-5 py-10">
+          <section
+            aria-labelledby="workspace-load-error"
+            className="max-w-lg rounded-panel border border-line bg-surface p-6 shadow-panel"
+            role="alert"
+          >
+            <h1 className="text-title font-semibold text-ink" id="workspace-load-error">
+              Could not load your workspace
+            </h1>
+            <p className="mt-3 text-label leading-6 text-warm">{error}</p>
+            <Button className="mt-5" onClick={() => void reload()} variant="secondary">
+              Try again
+            </Button>
+          </section>
+        </main>
+      );
+    }
+    return <LoadingPage label="Loading your workspace…" />;
   }
 
   const addLead = (input: {
@@ -236,6 +264,10 @@ function WorkspaceApp({
     source?: string;
     estimatedValue?: number;
   }) => {
+    if (!previewMode) {
+      void runRemote((client, workspaceId) => createSupabaseLead(client, workspaceId, input));
+      return;
+    }
     const lead = createLead(input);
     updateData((current) => ({
       ...current,
@@ -252,6 +284,10 @@ function WorkspaceApp({
   };
 
   const convertLead = (leadId: string) => {
+    if (!previewMode) {
+      void runRemote((client) => convertSupabaseLead(client, leadId));
+      return;
+    }
     updateData((current) => {
       const lead = current.leads.find((item) => item.id === leadId);
       if (!lead || lead.stage === "won" || lead.stage === "lost") return current;
@@ -296,6 +332,10 @@ function WorkspaceApp({
     startDate?: string;
     deadline?: string;
   }) => {
+    if (!previewMode) {
+      void runRemote((client, workspaceId) => createSupabaseProject(client, workspaceId, input));
+      return;
+    }
     const project = createProject(input);
     updateData((current) => ({
       ...current,
@@ -308,6 +348,10 @@ function WorkspaceApp({
   };
 
   const scheduleFollowUp = (input: { leadId: string; dueAt: string; note: string }) => {
+    if (!previewMode) {
+      void runRemote((client, workspaceId) => scheduleSupabaseFollowUp(client, workspaceId, input));
+      return;
+    }
     const followUp = createFollowUp(input);
     updateData((current) => ({
       ...current,
@@ -324,6 +368,10 @@ function WorkspaceApp({
   };
 
   const sendFollowUp = (followUpId: string, message: string) => {
+    if (!previewMode) {
+      void runRemote((client) => updateSupabaseFollowUp(client, followUpId, "sent", message));
+      return;
+    }
     updateData((current) => {
       const followUp = current.followUps.find((item) => item.id === followUpId);
       if (!followUp || followUp.status !== "open") return current;
@@ -354,6 +402,10 @@ function WorkspaceApp({
   };
 
   const completeFollowUp = (followUpId: string) => {
+    if (!previewMode) {
+      void runRemote((client) => updateSupabaseFollowUp(client, followUpId, "done"));
+      return;
+    }
     updateData((current) => {
       const followUp = current.followUps.find((item) => item.id === followUpId);
       if (!followUp || followUp.status !== "open") return current;
@@ -459,7 +511,7 @@ function WorkspaceApp({
           className="mb-4 rounded-control bg-warm-soft px-4 py-3 text-label text-warm"
           role="alert"
         >
-          Changes could not be saved to this browser: {error}
+          Workspace change failed: {error}
         </p>
       )}
       {signOutError && (
@@ -473,6 +525,14 @@ function WorkspaceApp({
       {page}
     </AppShell>
   );
+}
+
+function getUserDisplayName(user: User | null) {
+  const fullName = user?.user_metadata.full_name;
+  if (typeof fullName === "string" && fullName.trim()) return fullName.trim();
+  const name = user?.user_metadata.name;
+  if (typeof name === "string" && name.trim()) return name.trim();
+  return user?.email?.split("@")[0] ?? "Workspace owner";
 }
 
 function LoadingPage({ label }: { label: string }) {

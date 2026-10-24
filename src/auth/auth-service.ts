@@ -34,6 +34,52 @@ export async function signInWithGoogle(client: AppSupabaseClient, mode: LoginMod
   if (error) throw error;
 }
 
+function callbackUrl(mode: LoginMode) {
+  const redirectTo = new URL("/auth/callback", window.location.origin);
+  redirectTo.searchParams.set("mode", mode);
+  return redirectTo.toString();
+}
+
+export async function signInWithEmailLink(
+  client: AppSupabaseClient,
+  mode: LoginMode,
+  email: string,
+) {
+  const { error } = await client.auth.signInWithOtp({
+    email: email.trim().toLowerCase(),
+    options: { emailRedirectTo: callbackUrl(mode) },
+  });
+  if (error) throw error;
+}
+
+export async function signInWithEmailPassword(
+  client: AppSupabaseClient,
+  email: string,
+  password: string,
+) {
+  const { error } = await client.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
+  if (error) throw error;
+}
+
+// Returns true when a session exists immediately; false when the email must be confirmed first.
+export async function signUpWithEmailPassword(
+  client: AppSupabaseClient,
+  mode: LoginMode,
+  email: string,
+  password: string,
+) {
+  const { data, error } = await client.auth.signUp({
+    email: email.trim().toLowerCase(),
+    password,
+    options: { emailRedirectTo: callbackUrl(mode) },
+  });
+  if (error) throw error;
+  return Boolean(data.session);
+}
+
 export async function signOut(client: AppSupabaseClient) {
   const { error } = await client.auth.signOut();
   if (error) throw error;

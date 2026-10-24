@@ -85,7 +85,9 @@ function LeadsPage({
   const [selectedLeadId, setSelectedLeadId] = useState(
     initialSelectedLeadId ?? data.leads[0]?.id ?? "",
   );
-  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [showLeadForm, setShowLeadForm] = useState(
+    () => new URLSearchParams(window.location.search).get("new") === "1",
+  );
   const [formError, setFormError] = useState("");
 
   const [followUpError, setFollowUpError] = useState("");

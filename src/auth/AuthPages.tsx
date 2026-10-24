@@ -10,8 +10,11 @@ import type { Navigate } from "../navigation";
 import {
   getBusinessApplication,
   listCustomerAccessRequests,
+  signInWithEmailLink,
+  signInWithEmailPassword,
   signInWithGoogle,
   signOut,
+  signUpWithEmailPassword,
   submitBusinessApplication,
   submitCustomerAccessRequest,
   updateCustomerAccessRequest,
@@ -178,7 +181,7 @@ export function LoginPage({
           </p>
           <h2 className="mt-2 text-title font-semibold text-ink">{heading}</h2>
           <p className="mt-2 text-label leading-6 text-muted">
-            Continue securely with your Google account.
+            Continue securely with Google or your email address.
           </p>
 
           {user ? (
@@ -193,21 +196,28 @@ export function LoginPage({
               </Button>
             </div>
           ) : (
-            <Button
-              className="mt-6 w-full"
-              disabled={!configured}
-              onClick={() => void continueWithGoogle()}
-              variant="secondary"
-            >
-              <GoogleMark />
-              Continue with Google
-            </Button>
+            <>
+              <Button
+                className="mt-6 w-full"
+                disabled={!configured}
+                onClick={() => void continueWithGoogle()}
+                variant="secondary"
+              >
+                <GoogleMark />
+                Continue with Google
+              </Button>
+              <div className="my-5 flex items-center gap-3 text-caption text-muted">
+                <span className="h-px flex-1 bg-line" />
+                or use email
+                <span className="h-px flex-1 bg-line" />
+              </div>
+              <EmailLoginForm client={client} configured={configured} mode={mode} />
+            </>
           )}
 
           {!configured && (
             <p className="mt-3 rounded-control bg-warm-soft px-3 py-2 text-caption leading-5 text-warm">
-              Google sign-in is not connected yet. Configure a Supabase project and enable Google
-              OAuth to use this securely.
+              Sign-in is not connected yet. Configure a Supabase project to use this securely.
             </p>
           )}
           {(error || actionError) && (
@@ -230,6 +240,131 @@ export function LoginPage({
         </section>
       </div>
     </AuthFrame>
+  );
+}
+
+type EmailMethod = "password" | "signup" | "link";
+
+const emailMethods: { id: EmailMethod; label: string }[] = [
+  { id: "password", label: "Sign in" },
+  { id: "signup", label: "Create account" },
+  { id: "link", label: "Email link" },
+];
+
+function EmailLoginForm({
+  client,
+  configured,
+  mode,
+}: {
+  client: AppSupabaseClient | null;
+  configured: boolean;
+  mode: LoginMode;
+}) {
+  const [method, setMethod] = useState<EmailMethod>("password");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ tone: "error" | "info"; text: string } | null>(null);
+  const usesPassword = method !== "link";
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!client) return;
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "").trim();
+    const password = String(form.get("password") ?? "");
+    if (usesPassword && method === "signup" && password.length < 8) {
+      setMessage({ tone: "error", text: "Use a password with at least 8 characters." });
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      if (method === "password") {
+        await signInWithEmailPassword(client, email, password);
+      } else if (method === "signup") {
+        const signedIn = await signUpWithEmailPassword(client, mode, email, password);
+        if (!signedIn) {
+          setMessage({
+            tone: "info",
+            text: "Check your inbox to confirm your email address, then sign in.",
+          });
+        }
+      } else {
+        await signInWithEmailLink(client, mode, email);
+        setMessage({ tone: "info", text: "We sent you a secure sign-in link. Check your inbox." });
+      }
+    } catch (cause) {
+      setMessage({
+        tone: "error",
+        text: cause instanceof Error ? cause.message : "Email sign-in failed. Please try again.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="space-y-3" onSubmit={(event) => void submit(event)}>
+      <div className="grid grid-cols-3 gap-1 rounded-control bg-canvas p-1" role="group">
+        {emailMethods.map((item) => (
+          <button
+            aria-pressed={method === item.id}
+            className={`min-h-9 rounded-[8px] px-2 text-caption font-semibold ${
+              method === item.id ? "bg-surface text-primary shadow-panel" : "text-muted"
+            }`}
+            key={item.id}
+            onClick={() => {
+              setMethod(item.id);
+              setMessage(null);
+            }}
+            type="button"
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <label className="block space-y-1.5 text-label font-medium text-ink">
+        Email
+        <input
+          autoComplete="email"
+          className={inputClass}
+          maxLength={254}
+          name="email"
+          required
+          type="email"
+        />
+      </label>
+      {usesPassword && (
+        <label className="block space-y-1.5 text-label font-medium text-ink">
+          Password
+          <input
+            autoComplete={method === "signup" ? "new-password" : "current-password"}
+            className={inputClass}
+            maxLength={128}
+            minLength={method === "signup" ? 8 : undefined}
+            name="password"
+            required
+            type="password"
+          />
+        </label>
+      )}
+      <Button className="w-full" disabled={!configured || busy} type="submit">
+        {busy
+          ? "Please wait…"
+          : method === "password"
+            ? "Sign in with email"
+            : method === "signup"
+              ? "Create account"
+              : "Email me a sign-in link"}
+      </Button>
+      {message && (
+        <p
+          className={`text-caption leading-5 ${message.tone === "error" ? "text-warm" : "text-success"}`}
+          role={message.tone === "error" ? "alert" : "status"}
+        >
+          {message.text}
+        </p>
+      )}
+    </form>
   );
 }
 

@@ -9,6 +9,7 @@ export type AppRoute =
   | { kind: "customer-access" }
   | { kind: "customer-login" }
   | { kind: "login" }
+  | { kind: "marketplace" }
   | { kind: "not-found" }
   | { kind: "portal"; projectId: string }
   | { kind: "reference" }
@@ -52,6 +53,7 @@ const workspacePages: Record<string, { description: string; title: string }> = {
 export function getRoute(pathname: string): AppRoute {
   if (pathname === "/") return { kind: "dashboard" };
   if (pathname === "/login") return { kind: "login" };
+  if (pathname === "/services") return { kind: "marketplace" };
   if (pathname === "/business/login") return { kind: "business-login" };
   if (pathname === "/business/preview") return { kind: "business-preview" };
   if (pathname === "/business/verify") return { kind: "business-verify" };

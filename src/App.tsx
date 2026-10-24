@@ -37,6 +37,7 @@ import Dashboard from "./pages/Dashboard";
 import ClientsPage from "./pages/ClientsPage";
 import DetailPage from "./pages/DetailPage";
 import LeadsPage from "./pages/LeadsPage";
+import MarketplacePage from "./pages/MarketplacePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import PricingPage from "./pages/PricingPage";
 import ProjectsPage from "./pages/ProjectsPage";
@@ -55,6 +56,7 @@ function App() {
   if (route.kind === "login") {
     return <LoginChoicePage demoAvailable={!auth.configured && demoMode} navigate={navigate} />;
   }
+  if (route.kind === "marketplace") return <MarketplacePage navigate={navigate} />;
   if (route.kind === "business-login" || route.kind === "customer-login") {
     return (
       <LoginPage
@@ -127,6 +129,7 @@ function App() {
 
   if (auth.configured) {
     if (auth.loading) return <LoadingPage label="Restoring your secure session…" />;
+    if (route.kind === "dashboard" && !auth.user) return <MarketplacePage navigate={navigate} />;
     if (route.kind === "business-requests") {
       return (
         <BusinessAccessGate {...auth} navigate={navigate}>
@@ -464,7 +467,7 @@ function WorkspaceApp({
   let page;
   switch (route.kind) {
     case "dashboard":
-      page = <Dashboard data={data} navigate={navigate} />;
+      page = <Dashboard data={data} navigate={navigate} onAddLead={addLead} scope={scope} />;
       break;
     case "workspace":
       page =

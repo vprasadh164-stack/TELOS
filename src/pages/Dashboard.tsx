@@ -8,6 +8,7 @@ import ProgressBar from "../components/ui/ProgressBar";
 import type { Navigate } from "../navigation";
 import { calculateDashboardMetrics } from "../domain/dashboard-metrics";
 import type { WorkspaceData } from "../data/workspace-data";
+import OnboardingWizard, { type NewLeadInput } from "./OnboardingWizard";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -36,7 +37,19 @@ function formatDueDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(dueDate);
 }
 
-function Dashboard({ data, navigate }: { data: WorkspaceData; navigate: Navigate }) {
+function Dashboard({
+  data,
+  navigate,
+  onAddLead,
+  scope,
+}: {
+  data: WorkspaceData;
+  navigate: Navigate;
+  onAddLead: (input: NewLeadInput) => void;
+  scope: string;
+}) {
+  const workspaceIsEmpty =
+    data.leads.length === 0 && data.clients.length === 0 && data.projects.length === 0;
   const greeting = getGreeting();
   const metrics = calculateDashboardMetrics(data);
   const firstProject = data.projects.find((item) =>
@@ -66,11 +79,15 @@ function Dashboard({ data, navigate }: { data: WorkspaceData; navigate: Navigate
             Here&apos;s a snapshot of the client journey.
           </p>
         </div>
-        <Button onClick={() => navigate("/leads")}>
+        <Button onClick={() => navigate("/leads?new=1")}>
           <Icon className="size-4" name="plus" />
-          View leads
+          Add lead
         </Button>
       </div>
+
+      {workspaceIsEmpty && (
+        <OnboardingWizard businessName="your workspace" onAddLead={onAddLead} scope={scope} />
+      )}
 
       <section aria-label="Workspace overview" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
@@ -239,10 +256,18 @@ function Dashboard({ data, navigate }: { data: WorkspaceData; navigate: Navigate
           </div>
         </Card>
       ) : (
-        <Card className="p-6">
+        <Card className="flex flex-col items-start gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-label text-muted">
-            No active projects yet. Convert a lead when you&apos;re ready.
+            No active projects yet. Add a lead, convert it to a client, then create a project.
           </p>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate("/leads?new=1")} variant="secondary">
+              Add a lead
+            </Button>
+            {data.clients.length > 0 && (
+              <Button onClick={() => navigate("/leads")}>Create a project</Button>
+            )}
+          </div>
         </Card>
       )}
 

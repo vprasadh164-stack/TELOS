@@ -1,4 +1,5 @@
 import Badge from "../components/ui/Badge";
+import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import ProgressBar from "../components/ui/ProgressBar";
 import InternalLink from "../components/ui/InternalLink";
@@ -40,16 +41,14 @@ function ProjectsPage({ data, navigate }: { data: WorkspaceData; navigate: Navig
         <Card className="flex min-h-52 flex-col items-center justify-center px-6 py-10 text-center">
           <h2 className="text-title font-semibold text-ink">No projects yet</h2>
           <p className="mt-2 max-w-md text-label leading-6 text-muted">
-            Convert a qualified lead to a client, then create its first project from the lead
-            profile.
+            Add a lead, convert it to a client, then create its first project from the lead profile.
           </p>
-          <InternalLink
-            className="mt-4 text-label font-semibold text-primary no-underline hover:underline"
-            href="/leads"
-            navigate={navigate}
-          >
-            Go to leads
-          </InternalLink>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button onClick={() => navigate("/leads?new=1")}>Add your first lead</Button>
+            <Button onClick={() => navigate("/leads")} variant="secondary">
+              Go to leads
+            </Button>
+          </div>
         </Card>
       ) : (
         <ul className="grid gap-4 md:grid-cols-2">

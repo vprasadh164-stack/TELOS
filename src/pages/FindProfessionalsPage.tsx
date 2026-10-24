@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
@@ -12,7 +12,10 @@ import {
   type Provider,
   type ServiceId,
 } from "../data/providers";
+import type { AppSupabaseClient } from "../data/supabase-client";
+import { listMyRequests, listPublishedProviders, sendRequest } from "../data/marketplace-service";
 import type { Navigate } from "../navigation";
+import MyRequestsPanel from "./MyRequestsPanel";
 
 const requestsKey = "telos:provider-requests";
 
@@ -42,13 +45,40 @@ function Stars({ rating, reviews }: { rating: number; reviews: number }) {
   );
 }
 
-function FindProfessionalsPage({ navigate, user }: { navigate: Navigate; user: User | null }) {
+function FindProfessionalsPage({
+  client,
+  navigate,
+  user,
+}: {
+  client: AppSupabaseClient | null;
+  navigate: Navigate;
+  user: User | null;
+}) {
+  const [real, setReal] = useState<Provider[]>([]);
+  const [sentIds, setSentIds] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [service, setService] = useState<ServiceId>(initialService);
   const [openId, setOpenId] = useState<string | null>(null);
   const [requested, setRequested] = useState<string[]>(readRequests);
-  const list = providers
-    .filter((item) => item.service === service)
-    .sort((first, second) => second.rating - first.rating);
+  const sample = providers.filter((item) => item.service === service);
+  const usingSamples = real.length === 0;
+  const list = [...(usingSamples ? sample : real)].sort(
+    (first, second) => second.rating - first.rating,
+  );
+
+  useEffect(() => {
+    if (!client) return;
+    let active = true;
+    void listPublishedProviders(client, service)
+      .then((rows) => active && setReal(rows))
+      .catch(() => active && setReal([]));
+    void listMyRequests(client)
+      .then((rows) => active && setSentIds(rows.map((row) => row.provider_id)))
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [client, service]);
 
   function chooseService(next: ServiceId) {
     sessionStorage.setItem(selectedServiceKey, next);
@@ -56,7 +86,24 @@ function FindProfessionalsPage({ navigate, user }: { navigate: Navigate; user: U
     setOpenId(null);
   }
 
-  function request(provider: Provider) {
+  async function request(provider: Provider) {
+    if (client && user && !usingSamples) {
+      setError(null);
+      try {
+        await sendRequest(client, {
+          customerId: user.id,
+          customerName: String(user.user_metadata?.full_name ?? ""),
+          customerEmail: user.email ?? "",
+          message: "",
+          providerId: provider.id,
+          service,
+        });
+        setSentIds((current) => [...current, provider.id]);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Could not send the request.");
+      }
+      return;
+    }
     const next = [...new Set([...requested, provider.id])];
     setRequested(next);
     try {
@@ -89,9 +136,16 @@ function FindProfessionalsPage({ navigate, user }: { navigate: Navigate; user: U
         <p className="mt-2 text-label leading-6 text-muted">
           Compare ratings, portfolios and pricing, then choose who you want to work with.
         </p>
-        <p className="mt-3 rounded-control bg-warm-soft px-3 py-2 text-caption leading-5 text-warm">
-          These are sample listings while TELOS onboards verified businesses.
-        </p>
+        {usingSamples && (
+          <p className="mt-3 rounded-control bg-warm-soft px-3 py-2 text-caption leading-5 text-warm">
+            These are sample listings while TELOS onboards verified businesses.
+          </p>
+        )}
+        {error && (
+          <p className="mt-3 text-caption text-danger" role="alert">
+            {error}
+          </p>
+        )}
 
         <div aria-label="Service" className="mt-5 flex flex-wrap gap-2" role="group">
           {services.map((item) => (
@@ -119,7 +173,7 @@ function FindProfessionalsPage({ navigate, user }: { navigate: Navigate; user: U
           <ul className="mt-6 space-y-4">
             {list.map((provider) => {
               const open = openId === provider.id;
-              const sent = requested.includes(provider.id);
+              const sent = usingSamples ? requested.includes(provider.id) : sentIds.includes(provider.id);
               return (
                 <li key={provider.id}>
                   <Card className="p-5 sm:p-6">
@@ -131,7 +185,11 @@ function FindProfessionalsPage({ navigate, user }: { navigate: Navigate; user: U
                         </div>
                         <p className="mt-1 text-label leading-6 text-muted">{provider.headline}</p>
                         <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                          <Stars rating={provider.rating} reviews={provider.reviews} />
+                          {provider.reviews > 0 ? (
+                            <Stars rating={provider.rating} reviews={provider.reviews} />
+                          ) : (
+                            <span className="text-caption text-muted">New on TELOS</span>
+                          )}
                           <span className="text-caption text-muted">{provider.location}</span>
                         </p>
                       </div>
@@ -151,7 +209,7 @@ function FindProfessionalsPage({ navigate, user }: { navigate: Navigate; user: U
                       >
                         {open ? "Hide portfolio" : "View portfolio"}
                       </Button>
-                      <Button disabled={sent} onClick={() => request(provider)}>
+                      <Button disabled={sent} onClick={() => void request(provider)}>
                         {sent ? (
                           <>
                             <Icon className="size-4" name="check" />
@@ -195,9 +253,12 @@ function FindProfessionalsPage({ navigate, user }: { navigate: Navigate; user: U
             })}
           </ul>
         )}
+        {client && user && <MyRequestsPanel client={client} userId={user.id} />}
       </main>
     </div>
   );
 }
 
 export default FindProfessionalsPage;
+
+

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   AuthCallbackPage,
@@ -36,6 +36,7 @@ import { useNavigation } from "./navigation";
 import Dashboard from "./pages/Dashboard";
 import ClientsPage from "./pages/ClientsPage";
 import DetailPage from "./pages/DetailPage";
+import BusinessMarketplacePage from "./pages/BusinessMarketplacePage";
 import FindProfessionalsPage from "./pages/FindProfessionalsPage";
 import LeadsPage from "./pages/LeadsPage";
 import MarketplacePage from "./pages/MarketplacePage";
@@ -107,7 +108,7 @@ function App() {
   if (route.kind === "customer-find") {
     if (auth.loading) return <LoadingPage label="Restoring your secure session…" />;
     if (!auth.user && auth.configured) return <Redirect navigate={navigate} to="/customer/login" />;
-    return <FindProfessionalsPage navigate={navigate} user={auth.user} />;
+    return <FindProfessionalsPage client={auth.client} navigate={navigate} user={auth.user} />;
   }
   if (route.kind === "customer-access") {
     return auth.loading ? (
@@ -140,6 +141,13 @@ function App() {
       return (
         <BusinessAccessGate {...auth} navigate={navigate}>
           <BusinessRequestsPage {...auth} navigate={navigate} />
+        </BusinessAccessGate>
+      );
+    }
+    if (route.kind === "business-marketplace" && auth.client && auth.user) {
+      return (
+        <BusinessAccessGate {...auth} navigate={navigate}>
+          <BusinessMarketplacePage client={auth.client} navigate={navigate} user={auth.user} />
         </BusinessAccessGate>
       );
     }
@@ -579,3 +587,4 @@ function ConfigurationError({ message }: { message: string }) {
 }
 
 export default App;
+

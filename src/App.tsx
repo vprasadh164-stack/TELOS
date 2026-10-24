@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   AuthCallbackPage,
@@ -36,6 +36,7 @@ import { useNavigation } from "./navigation";
 import Dashboard from "./pages/Dashboard";
 import ClientsPage from "./pages/ClientsPage";
 import DetailPage from "./pages/DetailPage";
+import FindProfessionalsPage from "./pages/FindProfessionalsPage";
 import LeadsPage from "./pages/LeadsPage";
 import MarketplacePage from "./pages/MarketplacePage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -102,6 +103,11 @@ function App() {
         user={auth.user}
       />
     );
+  }
+  if (route.kind === "customer-find") {
+    if (auth.loading) return <LoadingPage label="Restoring your secure session…" />;
+    if (!auth.user && auth.configured) return <Redirect navigate={navigate} to="/customer/login" />;
+    return <FindProfessionalsPage navigate={navigate} user={auth.user} />;
   }
   if (route.kind === "customer-access") {
     return auth.loading ? (
@@ -539,6 +545,11 @@ function getUserDisplayName(user: User | null) {
   const name = user?.user_metadata.name;
   if (typeof name === "string" && name.trim()) return name.trim();
   return user?.email?.split("@")[0] ?? "Workspace owner";
+}
+
+function Redirect({ navigate, to }: { navigate: (to: string) => void; to: string }) {
+  useEffect(() => navigate(to), [navigate, to]);
+  return null;
 }
 
 function LoadingPage({ label }: { label: string }) {

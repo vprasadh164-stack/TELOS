@@ -2,23 +2,40 @@ import { useMemo, useState, type FormEvent } from "react";
 import Button from "../components/ui/Button";
 import Icon, { type IconName } from "../components/ui/Icon";
 import InternalLink from "../components/ui/InternalLink";
+import { selectedServiceKey, type ServiceId } from "../data/providers";
 import type { Navigate } from "../navigation";
 
 type ServiceCategory = {
   description: string;
   icon: IconName;
   name: string;
+  serviceId?: ServiceId;
 };
 
 const categories: ServiceCategory[] = [
+  {
+    name: "Plumbing",
+    icon: "settings",
+    description: "Leaks, fittings, bathroom and kitchen work",
+    serviceId: "plumbing",
+  },
+  {
+    name: "Electrical",
+    icon: "sparkles",
+    description: "Wiring, repairs, lighting, installations",
+    serviceId: "electrical",
+  },
+  {
+    name: "Website building",
+    icon: "grid",
+    description: "Freelancers and studios who build websites",
+    serviceId: "web-design",
+  },
   { name: "Renovation", icon: "briefcase", description: "Kitchens, bathrooms, full remodels" },
-  { name: "Web design", icon: "grid", description: "Websites, landing pages, redesigns" },
-  { name: "Landscaping", icon: "sparkles", description: "Gardens, lawns, outdoor spaces" },
+  { name: "Landscaping", icon: "tag", description: "Gardens, lawns, outdoor spaces" },
   { name: "Painting", icon: "tag", description: "Interior and exterior painting" },
   { name: "Cleaning", icon: "check", description: "Home, office, deep cleaning" },
   { name: "Photography", icon: "calendar", description: "Events, portraits, product shoots" },
-  { name: "Plumbing & electrical", icon: "settings", description: "Repairs, fittings, upgrades" },
-  { name: "Marketing", icon: "chart", description: "Branding, social, campaigns" },
 ];
 
 const steps = [
@@ -99,8 +116,8 @@ function MarketplacePage({ navigate }: { navigate: Navigate }) {
                 Trusted professionals for every project
               </h1>
               <p className="mt-4 max-w-lg text-label leading-6 text-muted">
-                Find a verified service business, share what you need, and follow the work from
-                first message to completion.
+                Find plumbers, electricians and website builders. Compare ratings, portfolios and
+                pricing, then choose who to work with.
               </p>
               <form
                 className="mt-6 flex max-w-xl flex-col gap-2 rounded-panel border border-line bg-surface p-2 shadow-panel sm:flex-row"
@@ -161,7 +178,10 @@ function MarketplacePage({ navigate }: { navigate: Navigate }) {
                   <InternalLink
                     className="group flex h-full flex-col rounded-panel border border-line bg-surface p-5 no-underline shadow-panel transition-colors hover:border-primary/40"
                     href="/customer/login"
-                    navigate={navigate}
+                    navigate={(to) => {
+                      if (item.serviceId) sessionStorage.setItem(selectedServiceKey, item.serviceId);
+                      navigate(to);
+                    }}
                   >
                     <span className="inline-flex size-11 items-center justify-center rounded-control bg-primary-soft text-primary">
                       <Icon className="size-5" name={item.icon} />

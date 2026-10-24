@@ -138,8 +138,8 @@ export function LoginPage({
   user,
 }: AuthPageProps & { mode: LoginMode }) {
   const business = mode === "business";
-  const title = business ? "Your business, moving forward." : "Your project, in one place.";
-  const heading = business ? "Sign in to your workspace" : "Sign in to your client portal";
+  const title = business ? "Your business, moving forward." : "Find the right professional.";
+  const heading = business ? "Sign in to your workspace" : "Sign in to find professionals";
 
   async function continueWithGoogle() {
     if (!client) return;
@@ -170,14 +170,14 @@ export function LoginPage({
             <p className="mt-4 max-w-sm text-label leading-6 text-white/80">
               {business
                 ? "Keep every lead, next step, and active project connected."
-                : "See updates, milestones, and messages that your business shares with you."}
+                : "Find plumbers, electricians and website builders. Compare ratings, portfolios and pricing, then choose who to work with."}
             </p>
           </div>
           <p className="text-caption text-white/70">A clear view of the work, for everyone.</p>
         </section>
         <section className="flex flex-col justify-center p-6 sm:p-9">
           <p className="text-caption font-semibold uppercase tracking-[0.09em] text-muted">
-            {business ? "Business workspace" : "Client portal"}
+            {business ? "Business workspace" : "Customer"}
           </p>
           <h2 className="mt-2 text-title font-semibold text-ink">{heading}</h2>
           <p className="mt-2 text-label leading-6 text-muted">
@@ -189,7 +189,7 @@ export function LoginPage({
               <p className="text-label font-medium text-ink">Signed in as {user.email}</p>
               <Button
                 className="mt-3 w-full"
-                onClick={() => navigate(business ? "/business/verify" : "/customer/access")}
+                onClick={() => navigate(business ? "/business/verify" : "/customer/find")}
               >
                 Continue
                 <Icon className="size-4" name="arrow-right" />
@@ -380,7 +380,7 @@ export function AuthCallbackPage({ error, navigate, user }: AuthPageProps) {
   useEffect(() => {
     if (!user) return;
     const mode = new URLSearchParams(window.location.search).get("mode");
-    navigate(mode === "business" ? "/business/verify" : "/customer/access");
+    navigate(mode === "business" ? "/business/verify" : "/customer/find");
   }, [navigate, user]);
 
   return (

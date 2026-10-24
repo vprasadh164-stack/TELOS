@@ -8,6 +8,7 @@ export type AppRoute =
   | { kind: "business-verify" }
   | { kind: "customer-access" }
   | { kind: "customer-login" }
+  | { kind: "customer-find" }
   | { kind: "login" }
   | { kind: "marketplace" }
   | { kind: "not-found" }
@@ -60,6 +61,7 @@ export function getRoute(pathname: string): AppRoute {
   if (pathname === "/business/requests") return { kind: "business-requests" };
   if (pathname === "/customer/login") return { kind: "customer-login" };
   if (pathname === "/customer/access") return { kind: "customer-access" };
+  if (pathname === "/customer/find") return { kind: "customer-find" };
   if (pathname === "/auth/callback") return { kind: "auth-callback" };
   if (pathname === "/reference") return { kind: "reference" };
 
